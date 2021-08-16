@@ -26,6 +26,7 @@ static void npd_parse_descr(npio_t * npd)
     char * descr = npd->descr;
     npd->np_byte_order = descr[1];
     npd->np_type = descr[2];
+    // ok since the dictionary is at most 2^16-1 B
     npd->np_bytes = (int) strtol(descr+3, NULL, 10);
     return;
 }
@@ -311,18 +312,31 @@ npio_t * npio_load(const char * filename)
         return NULL;
     }
 
+    struct stat info;
+    if(fstat(fileno(fid), &info) != 0)
+    {
+        printf("npio: could not fstat %s\n", filename);
+        fclose(fid);
+        return NULL;
+    }
+
+    size_t filesize = info.st_blksize;
+
     // Check magic number and version
     char magic[] = "123456";
 
     size_t nread = fread(magic, 1, 6, fid);
     if(nread != 6)
     {
+        printf("npio: Could not the magic number\n");
+        fclose(fid);
         return NULL;
     }
 
     if(strncmp(magic, "\x93NUMPY", 6) != 0)
     {
             printf("npio: Invalid magic number\n");
+            fclose(fid);
             return NULL;
     }
 
@@ -330,13 +344,16 @@ npio_t * npio_load(const char * filename)
     nread = fread(&version, 1, 2, fid);
     if(nread != 2)
     {
+        fclose(fid);
         printf("npio: Couldn't read version\n");
         return NULL;
     }
     if(version[0] != 1 || version[1] != 0)
     {
         printf("npio: Numpy file is v %d.%d, only tested for v 1.0\n",
-               version[0], version[1]);
+               (int) version[0], (int) version[1]);
+        fclose(fid);
+        return NULL;
     }
 
     // Read the size of the dictionary
@@ -345,6 +362,7 @@ npio_t * npio_load(const char * filename)
     if(nread != 2)
     {
         printf("npio: could not read dictionary size\n");
+        fclose(fid);
         return NULL;
     }
     //printf("Dictionary size: %u\n", dsize);
@@ -354,7 +372,9 @@ npio_t * npio_load(const char * filename)
     nread = fread(dict, 1, dsize, fid);
     if(nread != dsize)
     {
-        printf("npio: could not read dictionary\n");
+        printf("npio: could not read %d B dictionary\n", dsize);
+        free(dict);
+        fclose(fid);
         return NULL;
     }
     dict[dsize] = '\0'; // make a proper string
@@ -401,6 +421,8 @@ npio_t * npio_load(const char * filename)
                                      t[kk+1].end-t[kk+1].start);
             if(ret == EXIT_FAILURE)
             {
+                free(dict);
+                fclose(fid);
                 printf("npio: Could not parse the shape string\n");
                 return NULL;
             }
@@ -421,16 +443,34 @@ npio_t * npio_load(const char * filename)
     {
         pos++;
     }
-    fseek(fid, pos, SEEK_SET);
+    r = fseek(fid, pos, SEEK_SET);
+    if(r != EXIT_SUCCESS)
+    {
+        printf("npio: fseek failed on line %d\n", __LINE__);
+        fclose(fid);
+        goto fail;
+    }
 
     /// Read the data
-    // TODO: adjust to data type
-    //printf("To read %zu elements\n", npd->nel);
-    double * data = malloc(npd->nel*npd->np_bytes);
+    size_t nBytes = npd->nel*npd->np_bytes;
+    // Don't be tricked to allocate more memory than the actual
+    // file size
+    if(nBytes > filesize)
+    {
+        printf("npio: corrupt npy file?\n");
+        goto fail;
+    }
+    //printf("To read %zu elements in %zu B\n", npd->nel, nBytes);
+
+    double * data = malloc(nBytes);
+    if(data == NULL)
+    {
+        goto fail1;
+    }
     nread = fread(data, npd->np_bytes, npd->nel, fid);
     if(nread != npd->nel)
     {
-        goto fail;
+        goto fail1;
     }
     npd->data_size = npd->np_bytes*npd->nel;
     fclose(fid);
@@ -438,8 +478,10 @@ npio_t * npio_load(const char * filename)
     npd->data = data;
     return npd;
 
-    fail:
-            // TODO: free some stuff
-            fclose(fid);
-            return NULL;
+ fail1:
+    free(data);
+ fail:
+    npio_free(&npd);
+    fclose(fid);
+    return NULL;
 }

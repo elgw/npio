@@ -94,7 +94,7 @@ sys	0m0,012s
 ```
 
 ## Known bugs?
-See open issues.
+Only tested on x86_64 GNU/Linux. See open issues and the TODO list.
 
 ## TODO
  - Add a mechanism to communicate errors.
@@ -102,3 +102,5 @@ See open issues.
  - crash safety and memory leak checking.
  - A general writer.
  - NPZ support?
+ - Cross platform support.
+ - Care about endianness

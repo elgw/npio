@@ -1,3 +1,4 @@
 *.npy
 *.o
 npio
+testdata/

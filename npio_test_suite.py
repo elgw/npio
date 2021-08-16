@@ -82,6 +82,41 @@ def test_load_save(folder):
     np.save(fe, np.array([1.1, 2.2]))
     load_save_validate_file(fe)
 
+def corner_cases(folder):
+    # Not whole magic number
+    f = open(folder + "/invalid0.npy", "wb")
+    f.write(b"\x93NU")
+    f.close()
+    # Wrong magic number
+    f = open(folder + "/invalid1.npy", "wb")
+    f.write(b"\x93MUMPY")
+    f.close()
+    # Only magic number
+    f = open(folder + "/invalid2.npy", "wb")
+    f.write(b"\x93NUMPY")
+    f.close()
+    # Wrong version
+    f = open(folder + "/invalid3.npy", "wb")
+    f.write(b"\x93NUMPY\x01\x01")
+    f.close()
+    # Correct version, but no dictionary
+    f = open(folder + "/invalid4.npy", "wb")
+    f.write(b"\x93NUMPY\x01\x00")
+    f.close()
+    # Correct version, missing dictionary
+    f = open(folder + "/invalid5.npy", "wb")
+    f.write(b"\x93NUMPY\x01\x00\xff\xff")
+    f.close()
+    # Correct version, incomplete dictionary
+    f = open(folder + "/invalid6.npy", "wb")
+    dict = b"{'descr': '<f8', 'fortran_order': False, 'shape': (1000, 1000, 1000,), }"
+    print(len(dict))
+    f.write(b"\x93NUMPY\x01\x00\x48\x00" + dict)
+    f.close()
+    # ...
+
+
+
 
 if __name__ == '__main__':
     tmpfolder = 'testdata'
@@ -91,5 +126,7 @@ if __name__ == '__main__':
 
     benchmark(folder = tmpfolder)
     test_load_save(folder = tmpfolder)
+
+    corner_cases(tmpfolder)
 
     print(f"-> npio passed the tests")
