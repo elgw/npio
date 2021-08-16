@@ -1,4 +1,4 @@
-# numpy_io_c
+# npio: Numpy Input and Output for C
 
 A tiny (< 20 kB) C library for reading and writing Python/numpy `.npy` files.
 Most likely you should use [numpy](https://numpy.org/) instead of this.
