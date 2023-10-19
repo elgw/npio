@@ -1,12 +1,29 @@
 /* A command line "interface" for npio */
 
-#include <time.h>
+#include <assert.h>
 #include <getopt.h>
+#include <time.h>
+
 #include "npio.h"
 
+void show_endian(void)
+{
+    uint32_t x = 1;
+    uint8_t * x8 = (uint8_t*) &x;
+
+    if(x8[0] == 1)
+    {
+        printf("This machine is little endian\n");
+    } else {
+        printf("This machine is big endian\n");
+    }
+    return;
+}
 
 int unittest()
 {
+    show_endian();
+
     int M = 2;
     int N = 2;
 
@@ -20,27 +37,37 @@ int unittest()
     }
 
     char * outname = malloc(100);
+    assert(outname != NULL);
+
     sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
 
     printf("Writing to %s\n", outname);
     int status = npio_save_double(outname, ndim, dim, D);
     if(status != EXIT_SUCCESS)
     {
+        free(D);
+        free(outname);
         return status;
     }
 
     printf("Reading from %s\n", outname);
     npio_t * np = npio_load(outname);
     double * in_data = (double*) np->data;
+    size_t results_differ = 0;
     for(size_t kk = 0; kk< (size_t) M*N; kk++)
     {
         if(D[kk] != in_data[kk])
         {
-            printf("Data differs!\n");
+            results_differ++;
             return EXIT_FAILURE;
         }
     }
 
+    if(results_differ > 0)
+    {
+        fprintf(stderr, "FAILED: Results differ in %zu places\n",
+                results_differ);
+    }
     free(D);
     npio_print(stdout, np);
     npio_free(&np);

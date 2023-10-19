@@ -11,10 +11,10 @@ int dp_eq(const char *dict, const dptok_t *tok, const char *s) {
 int dp_parse(dp_t dp, const char * dict,
              const size_t dict_len, dptok_t * tok, const int tok_len)
 {
-    dp.pos = 0; // position in dict string
-    dp.toknext = 0; // next token to write to
+    dp.pos = 0; /* position in dict string */
+    dp.toknext = 0; /* next token to write to */
 
-    // Find first '{' while ignoring white spaces
+    /* Find first '{' while ignoring white spaces */
     while(dict[dp.pos] != '{' && dp.pos < dict_len)
     {
         dp.pos++;
@@ -24,18 +24,19 @@ int dp_parse(dp_t dp, const char * dict,
         return 0;
     }
 
-    // States:
-    // 0: looking for key to start '
-    // 1: looking for key to end ''
-    // 2: looking for ':'
-    // 3: looking for value to start nonwhite
-    // 4: looking for value to end ,
+    /* States:
+     * 0: looking for key to start '
+     * 1: looking for key to end ''
+     * 2: looking for ':'
+     * 3: looking for value to start nonwhite
+     * 4: looking for value to end ,
+     */
     int state = 0;
-    int nest = 0; // Keep track of parentheses
+    int nest = 0; /* Keep track of parentheses */
     while( dp.pos < dict_len)
     {
         char c = dict[dp.pos];
-        if(state == 0) // looking for key to start
+        if(state == 0) /* looking for key to start */
         {
             if(c == '\'')
             {
@@ -44,7 +45,7 @@ int dp_parse(dp_t dp, const char * dict,
                 goto nextchar;
             }
         }
-        if(state == 1) // looking for key to end
+        if(state == 1) /* looking for key to end */
         {
             if(c == '\'')
             {
@@ -56,13 +57,13 @@ int dp_parse(dp_t dp, const char * dict,
         }
         if(state == 2)
         {
-            if(c == ':') // looking for key:value separator
+            if(c == ':') /* looking for key:value separator */
             {
                 state = 3;
                 goto nextchar;
             }
         }
-        if(state == 3) // looking for start of value
+        if(state == 3) /* looking for start of value */
         {
             nest = 0;
             if(c != ' ')
@@ -77,7 +78,7 @@ int dp_parse(dp_t dp, const char * dict,
                 goto nextchar;
             }
         }
-        if(state == 4) // looking for end of value
+        if(state == 4) /* looking for end of value */
         {
             if( c == ')')
             {
@@ -95,8 +96,7 @@ int dp_parse(dp_t dp, const char * dict,
                 goto nextchar;
             }
         }
-    nextchar:
-        //printf("(pos: %d, state: %d), ", dp.pos, state);
+    nextchar: ;
         dp.pos++;
         if(dp.toknext == tok_len)
         {

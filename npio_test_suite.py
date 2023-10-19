@@ -115,14 +115,10 @@ def corner_cases(folder):
     f.close()
     # ...
 
-
-
-
 if __name__ == '__main__':
     tmpfolder = 'testdata'
     if not os.path.exists(tmpfolder):
         os.mkdir(tmpfolder)
-
 
     benchmark(folder = tmpfolder)
     test_load_save(folder = tmpfolder)

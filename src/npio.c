@@ -139,6 +139,10 @@ static int write_dictionary(FILE * fid, const int ndim, const int * shape)
     char *shape_str;
     size_t size;
     FILE *stream = open_memstream (&shape_str, &size);
+    if(stream == NULL)
+    {
+        return EXIT_FAILURE;
+    }
 
     fprintf(stream, "(");
     for(int kk = 0; kk+1<ndim; kk++)
@@ -217,6 +221,8 @@ int npio_save_double(const char * filename,
     FILE * fid = fopen(filename, "w");
     if(fid == NULL)
     {
+        fprintf(stderr, "npio_save_double: Unable to open %s for writing\n",
+                filename);
         return EXIT_FAILURE;
     }
     char d[] = "\x93NUMPY";

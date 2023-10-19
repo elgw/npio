@@ -1,25 +1,26 @@
 # PERFORMANCE, VALGRIND or DEBUG
 TARGET?=PERFORMANCE
 
-cc=gcc
+CC=gcc -std=gnu99
 
-ldflags=-lm
-cflags=$(cflags_ext) -Wall -pedantic -Wextra
+LDFLAGS=-lm
+CFLAGS=-Wall -Wextra -pedantic
 
 
 ifeq ($(TARGET), PERFORMANCE)
-	cflags+=-O3 -DNDEBUG
-	ldflags+=-flto
+	CFLAGS+=-O3 -DNDEBUG
+	LDFLAGS+=-flto
 endif
 
 ifeq ($(TARGET), VALGRIND)
-	cflags+=-g
+	CFLAGS+=-g
 endif
 
 ifeq ($(TARGET), DEBUG)
-	cflags+=-g
-	cflags+=-fsanitize=undefined
-	cflags+=-fsanitize=address
+	CFLAGS+=-g3
+	CFLAGS+=-fsanitize=undefined
+	CFLAGS+=-fsanitize=address
+	CFLAGS+=-fanalyzer
 endif
 
 $(info building for TARGET=$(TARGET))
@@ -27,10 +28,10 @@ $(info building for TARGET=$(TARGET))
 objects := npio.o dp.o
 
 %.o: src/%.c
-	$(cc) $(cflags) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 npio: $(objects)
-	$(cc) $(cflags) src/npio_cli.c $(objects) -o npio
+	$(CC) $(CFLAGS) src/npio_cli.c $(objects) -o npio $(LDFLAGS)
 
 clean:
 	rm *.o

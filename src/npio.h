@@ -1,9 +1,8 @@
+#pragma once
+
 /* A library to read/write numpy .npy-files
  * see npio_cli.c for example usage.
 */
-
-#ifndef __npio_h__
-#define __npio_h__
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,7 +26,7 @@ typedef struct{
     int * shape;
     char * shape_str;
     size_t nel; // number of elements
-    void * data;
+    void * data; //
     size_t data_size; // total size of data, in bytes
 } npio_t;
 
@@ -35,21 +34,24 @@ int npio_save_double(const char * filename,
               const int ndim, const int * shape,
               const double * data);
 
-/* Read a .npy file
-
-The pointer to the data can be stolen:
-   double * my_data = (double*) np->data;
-   np->data = NULL;
-   npio_free(np); // will ignore np->data
-
-Returns NULL on failure.
+/** @brief Read a .npy file
+ *
+ * The pointer to the data can be stolen:
+ *    double * my_data = (double*) np->data;
+ *    np->data = NULL;
+ *    npio_free(np); // will ignore np->data
+ *
+ * Returns NULL on failure.
  */
 npio_t * npio_load(const char * filename);
 
-/* Print some info about the npio_t object */
+/** @brief Print some info about the npio_t object
+ *
+*/
 void npio_print(FILE *, const npio_t * np);
 
-/* Free *np and set it to NULL */
+/* @brief Free an npio_t object
+ *
+ * Frees *np and sets it to NULL
+*/
 void npio_free(npio_t ** np);
-
-#endif
