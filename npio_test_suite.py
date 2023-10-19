@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 
+# 2023-10-19
+# - everything passed
+# - run with Python 3.10.12
+
+
 import numpy as np
 import time
 import subprocess
