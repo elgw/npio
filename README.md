@@ -96,8 +96,10 @@ sys	0m0,012s
 ```
 
 ## Known bugs?
-Only tested on x86_64 GNU/Linux and little endian AARCH64. See open
-issues and the [TODO](CHANGELOG.md) list.
+The main limitation is that it is only tested on little endian
+machines (AARCH64, x86_64), see what is planned etc in the
+[CHANGELOG](CHANGELOG.md) list.
 
 ## References
- - [NEP 1 — A Simple File Format for NumPy Arrays](https://github.com/numpy/numpy/blob/067cb067cb17a20422e51da908920a4fbb3ab851/doc/neps/nep-0001-npy-format.rst)
+- [NEP 1 — A Simple File Format for NumPy Arrays](https://github.com/numpy/numpy/blob/067cb067cb17a20422e51da908920a4fbb3ab851/doc/neps/nep-0001-npy-format.rst)
+- [numpy/format.py](https://github.com/numpy/numpy/blob/main/numpy/lib/format.py)
