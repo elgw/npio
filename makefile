@@ -25,14 +25,19 @@ endif
 
 $(info building for TARGET=$(TARGET))
 
-objects := npio.o dp.o
+
+all: npio libnpio.a
 
 %.o: src/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -fpic $(CFLAGS) -c $< -o $@
 
-npio: $(objects)
-	$(CC) $(CFLAGS) src/npio_cli.c $(objects) -o npio $(LDFLAGS)
+npio: libnpio.a src/npio_cli.c
+	$(CC) $(CFLAGS) src/npio_cli.c -o npio -L./ -lnpio $(LDFLAGS)
+
+libnpio.a: npio.o dp.o
+	$(CC) -fpic --shared $(CFLAGS) npio.o dp.o -o libnpio.a
 
 clean:
-	rm *.o
-	rm npio
+	rm -f *.o
+	rm -f npio
+	rm -f libnpio.a

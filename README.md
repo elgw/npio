@@ -16,22 +16,14 @@ To build the command line interface:
 ``` shell
 $ make -B
 building for TARGET=PERFORMANCE
-gcc  -Wall -pedantic -Wextra -O3 -DNDEBUG -c src/npio.c -o npio.o
-gcc  -Wall -pedantic -Wextra -O3 -DNDEBUG -c src/dp.c -o dp.o
-gcc  -Wall -pedantic -Wextra -O3 -DNDEBUG src/npio_cli.c npio.o dp.o -o npio
-```
-Optionally, for valgrind, use:
-
-``` shell
-$ make TARGET=VALGRIND -B
-building for TARGET=VALGRIND
-gcc  -Wall -pedantic -Wextra -g -c src/npio.c -o npio.o
-gcc  -Wall -pedantic -Wextra -g -c src/dp.c -o dp.o
-gcc  -Wall -pedantic -Wextra -g src/npio_cli.c npio.o dp.o -o npio
+gcc -std=gnu99 -fpic -Wall -Wextra -pedantic -O3 -DNDEBUG -c src/npio.c -o npio.o
+gcc -std=gnu99 -fpic -Wall -Wextra -pedantic -O3 -DNDEBUG -c src/dp.c -o dp.o
+gcc -std=gnu99 -fpic --shared -Wall -Wextra -pedantic -O3 -DNDEBUG npio.o dp.o -o libnpio.a
+gcc -std=gnu99 -Wall -Wextra -pedantic -O3 -DNDEBUG src/npio_cli.c -o npio -L./ -lnpio -lm -flto
 ```
 
 ## Validation
-Some cases, but certainly not all corners, are covered by a Python script:
+Some cases are covered by a Python script:
 
 ``` shell
 $ ./npio_test_suite.py
@@ -45,23 +37,12 @@ To write to testdata/bench_out.npy 1000 times took 0.0310 s
 - Load-Save validation
 -> npio passed the tests
 ```
-In the CLI, there is also a function (for you to expand) for validation.
+
+In the CLI interface does also have a few self-tests, run with:
+
 
 ``` shell
 $ ./npio --unittest
-Writing to numpy_io_ut_2x2.npy
-Reading from numpy_io_ut_2x2.npy
-filename: numpy_io_ut_2x2.npy
-descr: '<f8' (little endian, float, 8 bytes)
-np_byte_order: '<'
-np_type: 'f'
-fortran_order: 0
-ndim: 2
-shape_str: '(2, 2,)'
-shape: [2, 2]
-nel: 4
-size of data: 4 x 8 = 32 B
-Written and read data is identical
 ```
 
 ## Command Line Utility
