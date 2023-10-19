@@ -41,3 +41,4 @@ clean:
 	rm -f *.o
 	rm -f npio
 	rm -f libnpio.a
+	rm -f *.npy
