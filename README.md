@@ -1,15 +1,17 @@
 # npio: Numpy Input and Output for C
 
-A tiny (< 20 kB) C library for reading and writing Python/numpy `.npy` files.
-Most likely you should use [numpy](https://numpy.org/) instead of this.
+A tiny (< 20 kB) C library for reading and writing version 1
+Python/numpy `.npy` files.  Most likely you should use
+[numpy](https://numpy.org/) instead of this.
 
-The reader is quite general and returns a `struct` containing
-all information need to use the data, stored as a `void*`, see `src/npio.h`.
+The reader is quite general and returns a `struct` containing all
+information need to use the data, stored as a `void*`, see
+`src/npio.h`.
 
-For writing, there is an interface to write `double` data,
-it should be trivial to add support for other formats, at least numerical.
+For writing, there is an interface to write `double` data, it should
+be trivial to add support for other formats, at least numerical ones.
 
-## Building
+## Building from source
 To build the command line interface:
 ``` shell
 $ make -B
@@ -94,13 +96,8 @@ sys	0m0,012s
 ```
 
 ## Known bugs?
-Only tested on x86_64 GNU/Linux. See open issues and the TODO list.
+Only tested on x86_64 GNU/Linux and little endian AARCH64. See open
+issues and the [TODO](CHANGELOG.md) list.
 
-## TODO
- - Add a mechanism to communicate errors.
- - Support more/all numpy data formats
- - crash safety and memory leak checking.
- - A general writer.
- - NPZ support?
- - Cross platform support.
- - Care about endianness
+## References
+ - [NEP 1 — A Simple File Format for NumPy Arrays](https://github.com/numpy/numpy/blob/067cb067cb17a20422e51da908920a4fbb3ab851/doc/neps/nep-0001-npy-format.rst)

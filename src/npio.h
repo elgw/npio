@@ -4,6 +4,14 @@
  * see npio_cli.c for example usage.
 */
 
+#define NPIO_VERSION_MAJOR "0"
+#define NPIO_VERSION_MINOR "0"
+#define NPIO_VERSION_PATCH "1"
+#define NPIO_version NPIO_VERSION_MAJOR "."  \
+    NPIO_VERSION_MINOR "."                        \
+    NPIO_VERSION_PATCH
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,9 +38,47 @@ typedef struct{
     size_t data_size; // total size of data, in bytes
 } npio_t;
 
+/** @brief Save a double array to an npy file */
 int npio_save_double(const char * filename,
               const int ndim, const int * shape,
               const double * data);
+
+int npio_save_float(const char * filename,
+                     const int ndim, const int * shape,
+                     const float * data);
+
+int npio_save_int8_t(const char * filename,
+                     const int ndim, const int * shape,
+                     const int8_t * data);
+
+int npio_save_int16_t(const char * filename,
+                     const int ndim, const int * shape,
+                     const int16_t * data);
+
+int npio_save_int32_t(const char * filename,
+                     const int ndim, const int * shape,
+                     const int32_t * data);
+
+int npio_save_int64_t(const char * filename,
+                     const int ndim, const int * shape,
+                     const int64_t * data);
+
+int npio_save_uint8_t(const char * filename,
+                    const int ndim, const int * shape,
+                    const uint8_t * data);
+
+int npio_save_uint16_t(const char * filename,
+                      const int ndim, const int * shape,
+                      const uint16_t * data);
+
+int npio_save_uint32_t(const char * filename,
+                       const int ndim, const int * shape,
+                       const uint32_t * data);
+
+int npio_save_uint64_t(const char * filename,
+                       const int ndim, const int * shape,
+                       const uint64_t * data);
+
 
 /** @brief Read a .npy file
  *

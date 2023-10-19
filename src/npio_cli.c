@@ -20,10 +20,8 @@ void show_endian(void)
     return;
 }
 
-int unittest()
+int test_double(void)
 {
-    show_endian();
-
     int M = 2;
     int N = 2;
 
@@ -52,6 +50,12 @@ int unittest()
 
     printf("Reading from %s\n", outname);
     npio_t * np = npio_load(outname);
+    if(np == NULL)
+    {
+        fprintf(stderr, "Unable to open %s\n",
+               outname);
+               exit(EXIT_FAILURE);
+    }
     double * in_data = (double*) np->data;
     size_t results_differ = 0;
     for(size_t kk = 0; kk< (size_t) M*N; kk++)
@@ -76,6 +80,82 @@ int unittest()
     return EXIT_SUCCESS;
 }
 
+int test_float(void)
+{
+    int M = 2;
+    int N = 2;
+
+
+    int ndim = 2;
+    int dim[] = {M, N};
+    float * D = malloc(M*N*sizeof(float));
+    for(int kk = 0; kk<M*N; kk++)
+    {
+        D[kk] = (kk+1)+(float) (kk+1) / 10.0;
+    }
+
+    char * outname = malloc(100);
+    assert(outname != NULL);
+
+    sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
+
+    printf("Writing float array to %s\n", outname);
+    int status = npio_save_float(outname, ndim, dim, D);
+    if(status != EXIT_SUCCESS)
+    {
+        free(D);
+        free(outname);
+        return status;
+    }
+
+    printf("Reading from %s\n", outname);
+    npio_t * np = npio_load(outname);
+    if(np == NULL)
+    {
+        fprintf(stderr, "Unable to read from %s\n", outname);
+    }
+    float * in_data = (float*) np->data;
+    size_t results_differ = 0;
+    for(size_t kk = 0; kk< (size_t) M*N; kk++)
+    {
+        if(D[kk] != in_data[kk])
+        {
+            results_differ++;
+            return EXIT_FAILURE;
+        }
+    }
+
+    if(results_differ > 0)
+    {
+        fprintf(stderr, "FAILED: Results differ in %zu places\n",
+                results_differ);
+    }
+    free(D);
+    npio_print(stdout, np);
+    npio_free(&np);
+    free(outname);
+    printf("Written and read data is identical\n");
+    return EXIT_SUCCESS;
+}
+
+
+int unittest()
+{
+    show_endian();
+    printf("-> Testing write/read double\n");
+    if(test_double())
+    {
+        fprintf(stderr, "test_double failed\n");
+        return EXIT_FAILURE;
+    }
+    printf("-> Testing write/read float\n");
+    if(test_float())
+    {
+        fprintf(stderr, "test_float failed\n");
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
 void load(char * from)
 {
     npio_t * np = npio_load(from);
@@ -112,7 +192,7 @@ void resave(char * from, char * to)
         printf("Error: Can only write '<f8', this dataset has format %s\n", np->descr);
         return;
     }
-        int status = npio_save_double(to, np->ndim, np->shape, np->data);
+    int status = npio_save_double(to, np->ndim, np->shape, np->data);
 
     if(status != EXIT_SUCCESS)
     {
@@ -138,13 +218,13 @@ static void bench(char * from, char * to)
     clock_gettime(CLOCK_REALTIME, &tstart);
     for(size_t kk = 0; kk < N; kk++)
     {
-    npio_t * np = npio_load(from);
-    if(np == NULL)
-    {
-        printf("Failed to load %s\n", from);
-        exit(EXIT_FAILURE);;
-    }
-    npio_free(&np);
+        npio_t * np = npio_load(from);
+        if(np == NULL)
+        {
+            printf("Failed to load %s\n", from);
+            exit(EXIT_FAILURE);;
+        }
+        npio_free(&np);
     }
     clock_gettime(CLOCK_REALTIME, &tend);
     double t_load = timespec_diff(&tend, &tstart);
@@ -161,11 +241,11 @@ static void bench(char * from, char * to)
     {
         int status = npio_save_double(to, np->ndim, np->shape, np->data);
 
-    if(status != EXIT_SUCCESS)
-    {
-        printf("Failed to write to %s\n", to);
-        exit(EXIT_FAILURE);
-    }
+        if(status != EXIT_SUCCESS)
+        {
+            printf("Failed to write to %s\n", to);
+            exit(EXIT_FAILURE);
+        }
     }
     clock_gettime(CLOCK_REALTIME, &tend);
     double t_write = timespec_diff(&tend, &tstart);
@@ -194,6 +274,8 @@ void show_usage(char ** argv)
 
 int main(int argc, char ** argv)
 {
+
+    printf("NPIO version %s\n", NPIO_version);
 
     if(argc == 1)
     {

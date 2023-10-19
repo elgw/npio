@@ -13,7 +13,7 @@ ifeq ($(TARGET), PERFORMANCE)
 endif
 
 ifeq ($(TARGET), VALGRIND)
-	CFLAGS+=-g
+	CFLAGS+=-g3
 endif
 
 ifeq ($(TARGET), DEBUG)
