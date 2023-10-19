@@ -1,6 +1,6 @@
 # npio: Numpy Input and Output for C
 
-A tiny (< 20 kB) C library for reading and writing version 1
+A tiny (~ 20 kB) C library for reading and writing version 1
 Python/numpy `.npy` files.  Most likely you should use
 [numpy](https://numpy.org/) instead of this.
 
