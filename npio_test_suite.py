@@ -58,6 +58,8 @@ def load_save_validate_file(fe):
 
 def test_load_save(folder):
     print('- Load-Save validation')
+    print('-- double')
+
     # generate a file
     for k in range(0,100):
         m = np.random.randint(10) + 1
@@ -82,37 +84,162 @@ def test_load_save(folder):
     np.save(fe, np.array([1.1, 2.2]))
     load_save_validate_file(fe)
 
+    print('-- float')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = np.random.randn(m, n)
+        fe = folder + '/rand_float.npy'
+        A = A.astype('float')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- uint8')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_uint8.npy'
+        A = A.astype('uint8')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- uint16')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_uint16.npy'
+        A = A.astype('uint16')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- uint32')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_uint32.npy'
+        A = A.astype('uint32')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- uint64')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_uint64.npy'
+        A = A.astype('uint64')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- int8')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_int8.npy'
+        A = A.astype('int8')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- int16')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_int16.npy'
+        A = A.astype('int16')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- int32')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_int32.npy'
+        A = A.astype('int32')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+    print('-- int64')
+    for k in range(0,100):
+        m = np.random.randint(10) + 1
+        n = np.random.randint(10) + 2
+        A = 255*np.random.randn(m, n)
+        fe = folder + '/rand_int64.npy'
+        A = A.astype('int64')
+        np.save(fe, A)
+        load_save_validate_file(fe)
+
+
+def check_valgrind(command):
+    result = subprocess.run(command.split(),
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            universal_newlines=True)
+    # Check that no memory leaks
+    assert("no leaks are possible" in result.stderr)
+    # Check that we got an error from npio
+    assert(result.returncode == 1)
+
+
+
+
 def corner_cases(folder):
-    # Not whole magic number
-    f = open(folder + "/invalid0.npy", "wb")
+    print("- Corner cases")
+    print("-- Incomplete magic number")
+    filename = folder + "/invalid0.npy";
+    f = open(filename, "wb")
     f.write(b"\x93NU")
     f.close()
-    # Wrong magic number
-    f = open(folder + "/invalid1.npy", "wb")
+    check_valgrind("valgrind ./npio " + filename)
+
+    print("-- Wrong magic number")
+    filename = folder + "/invalid1.npy";
+    f = open(filename, "wb")
     f.write(b"\x93MUMPY")
     f.close()
-    # Only magic number
-    f = open(folder + "/invalid2.npy", "wb")
+    check_valgrind("valgrind ./npio " + filename)
+
+    print("-- Only magic number")
+    filename = folder + "/invalid2.npy";
+    f = open(filename, "wb")
     f.write(b"\x93NUMPY")
     f.close()
-    # Wrong version
-    f = open(folder + "/invalid3.npy", "wb")
+    check_valgrind("valgrind ./npio " + filename)
+
+    print("-- Wrong version")
+    filename = folder + "/invalid3.npy";
+    f = open(filename, "wb")
     f.write(b"\x93NUMPY\x01\x01")
     f.close()
-    # Correct version, but no dictionary
-    f = open(folder + "/invalid4.npy", "wb")
+    check_valgrind("valgrind ./npio " + filename)
+
+    print("-- Correct version, but no dictionary")
+    filename = folder + "/invalid4.npy";
+    f = open(filename, "wb")
     f.write(b"\x93NUMPY\x01\x00")
     f.close()
-    # Correct version, missing dictionary
-    f = open(folder + "/invalid5.npy", "wb")
+    check_valgrind("valgrind ./npio " + filename)
+
+    print("-- Correct version, missing dictionary")
+    filename = folder + "/invalid5.npy";
+    f = open(filename, "wb")
     f.write(b"\x93NUMPY\x01\x00\xff\xff")
     f.close()
-    # Correct version, incomplete dictionary
-    f = open(folder + "/invalid6.npy", "wb")
+    check_valgrind("valgrind ./npio " + filename)
+
+    print("-- Correct version, incomplete dictionary");
+    filename = folder + "/invalid6.npy";
+    f = open(filename, "wb")
     dict = b"{'descr': '<f8', 'fortran_order': False, 'shape': (1000, 1000, 1000,), }"
     print(len(dict))
     f.write(b"\x93NUMPY\x01\x00\x48\x00" + dict)
     f.close()
+    check_valgrind("valgrind ./npio " + filename)
     # ...
 
 if __name__ == '__main__':

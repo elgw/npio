@@ -1,4 +1,10 @@
 # Version history
+
+## 0.0.2
+- Reasonable support also for signed and unsigned integers
+- Extended `npio_test_suite.py` to also run valgrind checks for the
+  corner cases.
+
 ## 0.0.1
 - Reasonable support for double and float.
 - Compiles without errors or warnings.

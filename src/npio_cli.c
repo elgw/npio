@@ -187,13 +187,67 @@ void resave(char * from, char * to)
         printf("Failed to load %s\n", from);
         exit(EXIT_FAILURE);;
     }
-    if(strncmp(np->descr, "'<f8'", 5) != 0)
-    {
-        printf("Error: Can only write '<f8', this dataset has format %s\n", np->descr);
-        return;
-    }
-    int status = npio_save_double(to, np->ndim, np->shape, np->data);
 
+    int status = EXIT_FAILURE;
+    if(strncmp(np->descr, "'<f8'", 5) == 0)
+    {
+        status = npio_save_double(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'|i1'", 5) == 0)
+    {
+        status = npio_save_int8_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'<i2'", 5) == 0)
+    {
+        status = npio_save_int16_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'<i4'", 5) == 0)
+    {
+        status = npio_save_int32_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'<i8'", 5) == 0)
+    {
+        status = npio_save_int64_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'|u1'", 5) == 0)
+    {
+        status = npio_save_uint8_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'<u2'", 5) == 0)
+    {
+        status = npio_save_uint16_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'<u4'", 5) == 0)
+    {
+        status = npio_save_uint32_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    if(strncmp(np->descr, "'<u8'", 5) == 0)
+    {
+        status = npio_save_uint64_t(to, np->ndim, np->shape, np->data);
+        goto leave;
+    }
+
+    fprintf(stderr, "Error: Does not know how to write the data type %s\n", np->descr);
+    npio_free(&np);
+    return;
+
+leave: ;
     if(status != EXIT_SUCCESS)
     {
         printf("Failed to write to %s\n", to);
@@ -259,6 +313,7 @@ static void bench(char * from, char * to)
 
 void show_usage(char ** argv)
 {
+    printf("NPIO version %s\n", NPIO_version);
     printf("Usage:\n");
     printf("%s <file.npy>\n\t Show metadata of <file.npy>\n", argv[0]);
     printf("%s --help\n\t Show help message\n", argv[0]);
@@ -274,9 +329,6 @@ void show_usage(char ** argv)
 
 int main(int argc, char ** argv)
 {
-
-    printf("NPIO version %s\n", NPIO_version);
-
     if(argc == 1)
     {
         show_usage(argv);

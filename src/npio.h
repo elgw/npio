@@ -6,7 +6,7 @@
 
 #define NPIO_VERSION_MAJOR "0"
 #define NPIO_VERSION_MINOR "0"
-#define NPIO_VERSION_PATCH "1"
+#define NPIO_VERSION_PATCH "2"
 #define NPIO_version NPIO_VERSION_MAJOR "."  \
     NPIO_VERSION_MINOR "."                        \
     NPIO_VERSION_PATCH

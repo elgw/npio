@@ -9,7 +9,7 @@ information need to use the data, stored as a `void*`, see
 `src/npio.h`.
 
 The library contains methods to write the most common numerical data
-types.
+types, i.e., float, double, integers and unsigned integers.
 
 ## Building from source
 To build the library and a small command line interface, just do:

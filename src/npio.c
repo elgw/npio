@@ -60,7 +60,7 @@ static void print_dtype(FILE * fid, const npio_t * npd)
         fprintf(fid, "big endian");
         break;
     case '|':
-        fprintf(fid, "not applicable");
+        fprintf(fid, "bit/or little endian");
         break;
     default:
         fprintf(fid, "?");
@@ -107,7 +107,12 @@ static void print_dtype(FILE * fid, const npio_t * npd)
         fprintf(fid, "?");
         break;
     }
-    fprintf(fid, ", %d bytes", nbytes);
+    if(nbytes < 2)
+    {
+        fprintf(fid, ", %d byte", nbytes);
+    } else {
+        fprintf(fid, ", %d bytes", nbytes);
+    }
     }
 
 
@@ -118,7 +123,9 @@ void npio_print(FILE * fid, const npio_t * np)
     print_dtype(fid, np);
     fprintf(fid, ")\n");
     fprintf(fid, "np_byte_order: '%c'\n", np->np_byte_order);
+
     fprintf(fid, "np_type: '%c'\n", np->np_type);
+
 
     fprintf(fid, "fortran_order: %d\n", np->fortran_order);
     fprintf(fid, "ndim: %d\n", np->ndim);
@@ -185,7 +192,7 @@ static int write_dictionary(FILE * fid, const int ndim, const int * shape,
             desc_str, shape_str);
     free(shape_str);
 
-    printf("dict to write: %s\n", dict);
+    // printf("dict to write: %s\n", dict);
 
     size_t _HEADER_LEN = strlen(dict);
     if(_HEADER_LEN > 2<<16)
@@ -546,11 +553,11 @@ int npio_save_## x(const char * filename,                \
 
 NPIO_SAVE(double, "<f8")
 NPIO_SAVE(float, "<f4")
-NPIO_SAVE(int8_t, "<i1")
+NPIO_SAVE(int8_t, "|i1")
 NPIO_SAVE(int16_t, "<i2")
 NPIO_SAVE(int32_t, "<i4")
 NPIO_SAVE(int64_t, "<i8")
-NPIO_SAVE(uint8_t, "<u1")
+NPIO_SAVE(uint8_t, "|u1")
 NPIO_SAVE(uint16_t, "<u2")
 NPIO_SAVE(uint32_t, "<u4")
 NPIO_SAVE(uint64_t, "<u8")
