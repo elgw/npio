@@ -1,8 +1,21 @@
 #include "dp.h"
 
-int dp_eq(const char *dict, const dptok_t *tok, const char *s) {
-    if ((int)strlen(s) == tok->end - tok->start &&
-        strncmp(dict + tok->start, s, tok->end - tok->start) == 0) {
+int dp_eq(const char *dict, const dptok_t *tok, const char *s)
+{
+    int len = (int) strnlen(s, tok->end - tok->start);
+
+    if(len == 0)
+    {
+        return -1;
+    }
+
+    if (len != tok->end - tok->start)
+    {
+        return -1;
+    }
+
+    if(strncmp(dict + tok->start, s, tok->end - tok->start) == 0)
+    {
         return 0;
     }
     return -1;
@@ -17,11 +30,11 @@ int dp_parse(dp_t dp, const char * dict,
     /* Find first '{' while ignoring white spaces */
     while(dict[dp.pos] != '{' && dp.pos < dict_len)
     {
+        if( dp.pos == dict_len)
+        {
+            return 0;
+        }
         dp.pos++;
-    }
-    if((dp.pos + 1) == dict_len)
-    {
-        return 0;
     }
 
     /* States:
