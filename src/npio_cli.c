@@ -314,6 +314,9 @@ static void bench(char * from, char * to)
 void show_usage(char ** argv)
 {
     printf("NPIO version %s\n", NPIO_version);
+    printf("\n");
+    printf("A program to inspect Numpy npy files using libnpio\n");
+    printf("\n");
     printf("Usage:\n");
     printf("%s <file.npy>\n\t Show metadata of <file.npy>\n", argv[0]);
     printf("%s --help\n\t Show help message\n", argv[0]);
@@ -324,6 +327,8 @@ void show_usage(char ** argv)
     printf("%s --unittest\n\t Do some self-testing\n", argv[0]);
     printf("%s --resave <from.npy> <to.npy>\n\t"
            "Read <from.npy> and save as <to.npy>\n", argv[0]);
+    printf("\n");
+    printf("Webpage: https://github.com/elgw/npio\n");
     return;
 }
 
