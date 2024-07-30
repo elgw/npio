@@ -1,22 +1,15 @@
+#include "dp.h"
 #include "npio.h"
-
-static void nfree(void * p)
-{
-    if(p != NULL)
-    {
-        free(p);
-    }
-}
 
 void npio_free(npio_t ** _np)
 {
     npio_t * np = _np[0];
-    nfree(np->filename);
-    nfree(np->descr);
-    nfree(np->shape_str);
-    nfree(np->shape);
-    nfree(np->data);
-    nfree(np);
+    free(np->filename);
+    free(np->descr);
+    free(np->shape_str);
+    free(np->shape);
+    free(np->data);
+    free(np);
     _np[0] = NULL;
     return;
 }
@@ -37,7 +30,9 @@ static int npd_parse_descr(npio_t * npd)
     npd->np_bytes = (int) strtol(descr+3, NULL, 10);
     if(npd->np_bytes < 1 || npd->np_bytes > 16)
     {
-        fprintf(stderr, "npd_parse_descr: Could not figure out the size of the data type\n");
+        fprintf(stderr,
+                "npd_parse_descr: "
+                "Could not figure out the size of the data type\n");
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
@@ -125,7 +120,6 @@ void npio_print(FILE * fid, const npio_t * np)
     fprintf(fid, "np_byte_order: '%c'\n", np->np_byte_order);
 
     fprintf(fid, "np_type: '%c'\n", np->np_type);
-
 
     fprintf(fid, "fortran_order: %d\n", np->fortran_order);
     fprintf(fid, "ndim: %d\n", np->ndim);
@@ -352,7 +346,7 @@ npio_t * npio_load(const char * filename)
     size_t nread = fread(magic, 1, 6, fid);
     if(nread != 6)
     {
-        fprintf(stderr, "npio: Could not the magic number\n");
+        fprintf(stderr, "npio: Could not read the magic number\n");
         fclose(fid);
         return NULL;
     }
