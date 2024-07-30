@@ -42,3 +42,8 @@ clean:
 	rm -f npio
 	rm -f libnpio.a
 	rm -f *.npy
+
+install: libnpio.a src/npio.h npio
+	cp libnpio.a /usr/local/lib/
+	cp src/npio.h /usr/local/include/
+	cp npio /usr/local/bin
