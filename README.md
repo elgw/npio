@@ -14,6 +14,8 @@ Limitations
 
 ## Minimal example
 
+Loading data from a pre-defined filename and showing what it contains:
+
 ``` c
 #include <npio.h>
 #include <stdlib.h>
@@ -26,6 +28,24 @@ int main(int argc, char ** argv)
     return EXIT_SUCCESS;
 }
 ```
+
+Which will give the following output:
+``` shell
+$ gcc minimal.c -lnpio
+$ ./a.out
+filename: numpy_io_ut_2x2.npy
+descr: '<f4' (little endian, float, 4 bytes)
+np_byte_order: '<'
+np_type: 'f'
+fortran_order: 0
+ndim: 2
+shape_str: '(2, 2,)'
+shape: [2, 2]
+nel: 4
+size of data: 4 x 4 = 16 B
+```
+
+Actual data can be found in the `npio_t` object.
 
 ## Build and install
 
@@ -66,7 +86,6 @@ size of data: 4 x 8 = 32 B
 ```
 
 build it from the makefile.
-
 
 ## References
 - [NEP 1 — A Simple File Format for NumPy
