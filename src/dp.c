@@ -2,6 +2,10 @@
 
 int dp_eq(const char *dict, const dptok_t *tok, const char *s)
 {
+    assert(dict != NULL);
+    assert(tok != NULL);
+    assert(s != NULL);
+
     int len = (int) strnlen(s, tok->end - tok->start);
 
     if(len == 0)

@@ -4,7 +4,7 @@ TARGET?=PERFORMANCE
 CC=gcc -std=gnu99
 
 LDFLAGS=-lm
-CFLAGS=-Wall -Wextra -pedantic
+CFLAGS=-Wall -Wextra -pedantic -Iinclude/
 
 
 ifeq ($(TARGET), PERFORMANCE)

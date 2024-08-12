@@ -1,8 +1,15 @@
 /* A command line "interface" for npio */
 
 #include <assert.h>
+#include <assert.h>
 #include <getopt.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "npio.h"
 
@@ -74,7 +81,8 @@ int test_double(void)
     }
     free(D);
     npio_print(stdout, np);
-    npio_free(&np);
+    npio_free(np);
+    np = NULL;
     free(outname);
     printf("Written and read data is identical\n");
     return EXIT_SUCCESS;
@@ -132,7 +140,8 @@ int test_float(void)
     }
     free(D);
     npio_print(stdout, np);
-    npio_free(&np);
+    npio_free(np);
+    np = NULL;
     free(outname);
     printf("Written and read data is identical\n");
     return EXIT_SUCCESS;
@@ -176,7 +185,8 @@ void show(char * from)
         exit(EXIT_FAILURE);;
     }
     npio_print(stdout, np);
-    npio_free(&np);
+    npio_free(np);
+    np = NULL;
 }
 
 void resave(char * from, char * to)
@@ -187,7 +197,7 @@ void resave(char * from, char * to)
         printf("Failed to load %s\n", from);
         exit(EXIT_FAILURE);;
     }
-
+    assert(np->descr != NULL);
     int status = EXIT_FAILURE;
     if(strncmp(np->descr, "'<f8'", 5) == 0)
     {
@@ -244,7 +254,8 @@ void resave(char * from, char * to)
     }
 
     fprintf(stderr, "Error: Does not know how to write the data type %s\n", np->descr);
-    npio_free(&np);
+    npio_free(np);
+    np = NULL;
     return;
 
 leave: ;
@@ -253,7 +264,8 @@ leave: ;
         printf("Failed to write to %s\n", to);
         exit(EXIT_FAILURE);
     }
-    npio_free(&np);
+    npio_free(np);
+    np = NULL;
     return;
 }
 
@@ -278,7 +290,8 @@ static void bench(char * from, char * to)
             printf("Failed to load %s\n", from);
             exit(EXIT_FAILURE);;
         }
-        npio_free(&np);
+        npio_free(np);
+        np = NULL;
     }
     clock_gettime(CLOCK_REALTIME, &tend);
     double t_load = timespec_diff(&tend, &tstart);
@@ -303,7 +316,8 @@ static void bench(char * from, char * to)
     }
     clock_gettime(CLOCK_REALTIME, &tend);
     double t_write = timespec_diff(&tend, &tstart);
-    npio_free(&np);
+    npio_free(np);
+    np = NULL;
 
     printf("To load %s 1000 times took %.4f s\n", from, t_load);
     printf("To write to %s 1000 times took %.4f s\n", to, t_write);

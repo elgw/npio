@@ -1,16 +1,22 @@
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "dp.h"
 #include "npio.h"
 
-void npio_free(npio_t ** _np)
+void npio_free(npio_t * np)
 {
-    npio_t * np = _np[0];
     free(np->filename);
     free(np->descr);
     free(np->shape_str);
     free(np->shape);
     free(np->data);
     free(np);
-    _np[0] = NULL;
     return;
 }
 
@@ -113,6 +119,10 @@ static void print_dtype(FILE * fid, const npio_t * npd)
 
 void npio_print(FILE * fid, const npio_t * np)
 {
+    if(fid == NULL)
+    {
+        fid = stdout;
+    }
     fprintf(fid, "filename: %s\n", np->filename);
     fprintf(fid, "descr: %s (", np->descr);
     print_dtype(fid, np);
@@ -326,14 +336,16 @@ npio_t * npio_load(const char * filename)
     FILE * fid = fopen(filename, "r");
     if(fid == NULL)
     {
-        printf("npio: failed to open %s\n", filename);
+        fprintf(stderr,
+                "npio: failed to open %s\n", filename);
         return NULL;
     }
 
     struct stat info;
     if(fstat(fileno(fid), &info) != 0)
     {
-        printf("npio: could not fstat %s\n", filename);
+        fprintf(stderr,
+                "npio: could not fstat %s\n", filename);
         fclose(fid);
         return NULL;
     }
@@ -386,7 +398,9 @@ npio_t * npio_load(const char * filename)
     //printf("Dictionary size: %u\n", dsize);
 
     // Read the dictionary
-    char * dict = malloc(dsize+1);
+    char * dict = calloc(dsize+1, 1);
+    assert(dict != NULL);
+
     nread = fread(dict, 1, dsize, fid);
     if(nread != dsize)
     {
@@ -400,14 +414,7 @@ npio_t * npio_load(const char * filename)
 
     npio_t * npd = calloc(1, sizeof(npio_t));
     npd->filename = strdup(filename);
-    npd->descr = NULL;
-    npd->data = NULL;
-    npd->shape = NULL;
-    npd->shape_str = NULL;
-    npd->ndim = 0;
-    npd->nel = 0;
     npd->fortran_order = 1;
-
 
     // Parse the dictionary
     dp_t dp = {0}; // dictionary parser
@@ -443,10 +450,10 @@ npio_t * npio_load(const char * filename)
                                      t[kk+1].end-t[kk+1].start);
             if(ret == EXIT_FAILURE)
             {
-                free(dict);
-                fclose(fid);
                 fprintf(stderr, "npio: Could not parse the shape string\n");
-                return NULL;
+                free(dict);
+                dict = NULL;
+                goto fail;
             }
         }
         /*
@@ -459,6 +466,12 @@ npio_t * npio_load(const char * filename)
 
     free(dict);
 
+    if( npd->descr == NULL )
+    {
+        fprintf(stderr, "Failed to read the data type description\n");
+        goto fail;
+        }
+
     // Forward to the data
     long pos = ftell(fid);
     while(((size_t) pos % 64) != 0)
@@ -469,7 +482,6 @@ npio_t * npio_load(const char * filename)
     if(r != EXIT_SUCCESS)
     {
         fprintf(stderr, "npio: fseek failed on line %d\n", __LINE__);
-        fclose(fid);
         goto fail;
     }
 
@@ -484,7 +496,7 @@ npio_t * npio_load(const char * filename)
     }
     //printf("To read %zu elements in %zu B\n", npd->nel, nBytes);
 
-    double * data = malloc(nBytes);
+    uint8_t * data = calloc(nBytes, 1);
     if(data == NULL)
     {
         fprintf(stderr, "npio failed: Could not allocate %zu bytes\n", nBytes);
@@ -506,27 +518,13 @@ npio_t * npio_load(const char * filename)
  fail1:
     free(data);
  fail:
-    npio_free(&npd);
+    npio_free(npd);
+    npd = NULL;
     fclose(fid);
     return NULL;
 }
 
-#if 0
-int npio_save_double(const char * filename,
-                     const int ndim, const int * shape,
-                     const double * data)
-{
-
-    size_t nelements = 1;
-    for(int kk = 0; kk<ndim; kk++)
-    {
-        nelements *= shape[kk];
-    }
-    size_t element_size = sizeof(double);
-    return npio_write_raw(filename, ndim, shape, (void *) data,
-                          nelements, element_size);
-}
-#endif
+/* Save function signature */
 
 #define NPIO_SAVE(x, y)                                  \
 int npio_save_## x(const char * filename,                \

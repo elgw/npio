@@ -1,32 +1,52 @@
 # npio: Numpy Input and Output for C
 
-A tiny (~ 20 kB) C library for reading and writing version 1
-Python/numpy `.npy` files.  Most likely you should use
-[numpy](https://numpy.org/) instead of this.
+Features
 
-The reader is quite general and returns a `struct` containing all
-information need to use the data, stored as a `void*`, see
-`src/npio.h`.
+- A tiny (~ 20 kB) C library for reading and writing version 1
+Python/numpy `.npy` files.
+- No dependencies.
 
-The library contains methods to write the most common numerical data
-types, i.e., float, double, integers and unsigned integers.
+Limitations
 
-## Building from source
-To build the library and a small command line interface, just do:
+ - Only tested on little endian machines (AARCH64, x86_64).
+ - Not everything is supported, see some plans in the [CHANGELOG](CHANGELOG.md) list.
+
+
+## Minimal example
+
+``` c
+#include <npio.h>
+#include <stdlib.h>
+
+int main(int argc, char ** argv)
+{
+    npio_t * np = npio_load("numpy_io_ut_2x2.npy");
+    npio_print(stdout, np);
+    npio_free(np);
+    return EXIT_SUCCESS;
+}
+```
+
+## Build and install
+
 ``` shell
-$ make -B
-building for TARGET=PERFORMANCE
-gcc -std=gnu99 -fpic -Wall -Wextra -pedantic -O3 -DNDEBUG -c src/npio.c -o npio.o
-gcc -std=gnu99 -fpic -Wall -Wextra -pedantic -O3 -DNDEBUG -c src/dp.c -o dp.o
-gcc -std=gnu99 -fpic --shared -Wall -Wextra -pedantic -O3 -DNDEBUG npio.o dp.o -o libnpio.a
-gcc -std=gnu99 -Wall -Wextra -pedantic -O3 -DNDEBUG src/npio_cli.c -o npio -L./ -lnpio -lm -flto
+mkdir build
+cd build
+cmake ../
+sudo make install
 ```
 
 ## Validation
-Some cases are covered by the Python script `/npio_test_suite.py`
-(which calls `./npio`). Self tests are run by `./npio --unittest`
+- [x] Passes valgrind.
+- [x] Passes `-fanalyzer`.
+- Some cases are covered by the Python script `/npio_test_suite.py`
+(which calls `./npio`).
+- Self tests are run by `./npio --unittest`.
+- [ ] Fuzzing?
+- [ ] Other evil edge cases.
 
 ## Command Line Utility
+
 The command line utility exists mostly to demonstrate how to use the
 library. However it can also be used to quickly inspect `.npy` files:
 
@@ -45,10 +65,8 @@ nel: 4
 size of data: 4 x 8 = 32 B
 ```
 
-## Known bugs?
-The main limitation is that it is only tested on little endian
-machines (AARCH64, x86_64), see what is planned etc in the
-[CHANGELOG](CHANGELOG.md) list.
+build it from the makefile.
+
 
 ## References
 - [NEP 1 — A Simple File Format for NumPy
