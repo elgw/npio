@@ -1,5 +1,10 @@
 # Version history
 
+## 0.0.3
+- Changed signature of `np_free`.
+- Added a `CMakeLists.txt`
+- Minor changes so that `-fanalyzer` does not complain.
+
 ## 0.0.2
 - Reasonable support also for signed and unsigned integers
 - Extended `npio_test_suite.py` to also run valgrind checks for the
