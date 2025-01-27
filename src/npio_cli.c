@@ -3,11 +3,11 @@
 #include <assert.h>
 #include <assert.h>
 #include <getopt.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -47,7 +47,7 @@ int test_double(void)
     sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
 
     printf("Writing to %s\n", outname);
-    int status = npio_save_double(outname, ndim, dim, D);
+    int status = npio_save_f64(outname, ndim, dim, D);
     if(status != EXIT_SUCCESS)
     {
         free(D);
@@ -108,7 +108,7 @@ int test_float(void)
     sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
 
     printf("Writing float array to %s\n", outname);
-    int status = npio_save_float(outname, ndim, dim, D);
+    int status = npio_save_f32(outname, ndim, dim, D);
     if(status != EXIT_SUCCESS)
     {
         free(D);
@@ -201,55 +201,55 @@ void resave(char * from, char * to)
     int status = EXIT_FAILURE;
     if(strncmp(np->descr, "'<f8'", 5) == 0)
     {
-        status = npio_save_double(to, np->ndim, np->shape, np->data);
+        status = npio_save_f64(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'|i1'", 5) == 0)
     {
-        status = npio_save_int8_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_i8(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'<i2'", 5) == 0)
     {
-        status = npio_save_int16_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_i16(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'<i4'", 5) == 0)
     {
-        status = npio_save_int32_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_i32(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'<i8'", 5) == 0)
     {
-        status = npio_save_int64_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_i64(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'|u1'", 5) == 0)
     {
-        status = npio_save_uint8_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_u8(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'<u2'", 5) == 0)
     {
-        status = npio_save_uint16_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_u16(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'<u4'", 5) == 0)
     {
-        status = npio_save_uint32_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_u32(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
     if(strncmp(np->descr, "'<u8'", 5) == 0)
     {
-        status = npio_save_uint64_t(to, np->ndim, np->shape, np->data);
+        status = npio_save_u64(to, np->ndim, np->shape, np->data);
         goto leave;
     }
 
@@ -306,7 +306,7 @@ static void bench(char * from, char * to)
     clock_gettime(CLOCK_REALTIME, &tstart);
     for(size_t kk = 0; kk < N; kk++)
     {
-        int status = npio_save_double(to, np->ndim, np->shape, np->data);
+        int status = npio_save_f64(to, np->ndim, np->shape, np->data);
 
         if(status != EXIT_SUCCESS)
         {
