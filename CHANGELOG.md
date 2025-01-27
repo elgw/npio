@@ -1,5 +1,8 @@
 # Version history
 
+## 0.0.4
+- renamed npio_save_uint8_t to npio_save_u8 etc.
+
 ## 0.0.3
 - Changed signature of `np_free`.
 - Added a `CMakeLists.txt`
