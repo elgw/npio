@@ -8,31 +8,38 @@ Python/numpy `.npy` files.
 
 Limitations
 
- - Only tested on little endian machines (AARCH64, x86_64).
- - Not everything is supported, see some plans in the [CHANGELOG](CHANGELOG.md) list.
+- Only tested on little endian machines (AARCH64, x86_64).
+- Not everything is supported, see some plans in the [CHANGELOG](CHANGELOG.md) list.
 
 
 ## Minimal example
 
-Loading data from a pre-defined filename and showing what it contains:
+This code will open an npy file and show the metadata:
 
 ``` c
-#include <npio.h>
 #include <stdlib.h>
+#include <npio.h>
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
-    npio_t * np = npio_load("numpy_io_ut_2x2.npy");
-    npio_print(stdout, np);
-    npio_free(np);
-    return EXIT_SUCCESS;
+    if(argc > 1)
+    {
+        npio_t * np = npio_load(argv[1]);
+        if(np)
+        {
+            npio_print(stdout, np);
+            npio_free(np);
+            return EXIT_SUCCESS;
+        }
+    }
+    return EXIT_FAILURE;
 }
 ```
 
 Which will give the following output:
 ``` shell
-$ gcc minimal.c -lnpio
-$ ./a.out
+$ gcc -Wall -Wextra -pedantic -fanalyzer minimal.c -lnpio
+$ ./a.out numpy_io_ut_2x2.npy
 filename: numpy_io_ut_2x2.npy
 descr: '<f4' (little endian, float, 4 bytes)
 np_byte_order: '<'
@@ -89,5 +96,5 @@ build it from the makefile.
 
 ## References
 - [NEP 1 — A Simple File Format for NumPy
-  Arrays](https://github.com/numpy/numpy/blob/067cb067cb17a20422e51da908920a4fbb3ab851/doc/neps/nep-0001-npy-format.rst)
+Arrays](https://github.com/numpy/numpy/blob/067cb067cb17a20422e51da908920a4fbb3ab851/doc/neps/nep-0001-npy-format.rst)
 - [numpy/format.py](https://github.com/numpy/numpy/blob/main/numpy/lib/format.py)
