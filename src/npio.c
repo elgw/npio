@@ -1,13 +1,25 @@
 #include <assert.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "dp.h"
 #include "npio.h"
+
+typedef double f64;
+typedef float f32;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
 
 void npio_free(npio_t * np)
 {
@@ -162,7 +174,7 @@ static int write_dictionary(FILE * fid, const int ndim, const int * shape,
     /// Create the shape string i.e. something like (2, 3,)
     char *shape_str;
     size_t size;
-    FILE *stream = open_memstream (&shape_str, &size);
+    FILE *stream = open_memstream(&shape_str, &size);
     if(stream == NULL)
     {
         return EXIT_FAILURE;
@@ -543,13 +555,13 @@ int npio_save_## x(const char * filename,                \
                           y);                            \
 }                                                        \
 
-NPIO_SAVE(double, "<f8")
-NPIO_SAVE(float, "<f4")
-NPIO_SAVE(int8_t, "|i1")
-NPIO_SAVE(int16_t, "<i2")
-NPIO_SAVE(int32_t, "<i4")
-NPIO_SAVE(int64_t, "<i8")
-NPIO_SAVE(uint8_t, "|u1")
-NPIO_SAVE(uint16_t, "<u2")
-NPIO_SAVE(uint32_t, "<u4")
-NPIO_SAVE(uint64_t, "<u8")
+NPIO_SAVE(f64, "<f8")
+NPIO_SAVE(f32, "<f4")
+NPIO_SAVE(i8, "|i1")
+NPIO_SAVE(i16, "<i2")
+NPIO_SAVE(i32, "<i4")
+NPIO_SAVE(i64, "<i8")
+NPIO_SAVE(u8, "|u1")
+NPIO_SAVE(u16, "<u2")
+NPIO_SAVE(u32, "<u4")
+NPIO_SAVE(u64, "<u8")
