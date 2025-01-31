@@ -362,7 +362,7 @@ npio_t * npio_load(const char * filename)
         return NULL;
     }
 
-    size_t filesize = info.st_blksize;
+    size_t filesize = info.st_size;
 
     // Check magic number and version
     char magic[] = "123456";
@@ -498,11 +498,12 @@ npio_t * npio_load(const char * filename)
     }
 
     /// Read the data
-    size_t nBytes = npd->nel*npd->np_bytes;
+    size_t nBytes = (u64) npd->nel* (u64) npd->np_bytes;
     // Don't be tricked to allocate more memory than the actual
     // file size
     if(nBytes > filesize)
     {
+        fprintf(stderr, "npio: nBytes=%zu, file size=%zu\n", nBytes, filesize);
         fprintf(stderr, "npio: corrupt npy file?\n");
         goto fail;
     }

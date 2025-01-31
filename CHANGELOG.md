@@ -1,5 +1,8 @@
 # Version history
 
+## 0.0.5
+- Fixed issue in opening large files.
+
 ## 0.0.4
 - renamed npio_save_uint8_t to npio_save_u8 etc.
 
