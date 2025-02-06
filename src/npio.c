@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "dp.h"
 #include "npio.h"
 
 typedef double f64;
@@ -20,7 +19,37 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+/* FORWARD DECLARATIONS FOR DICTIONARY PARSER */
 
+/* A dictionary-string parser,
+   parses keywords and values
+   and point to the corresponding positions in the dictionary string.
+*/
+
+typedef struct {
+    size_t pos;
+    int toknext;
+} dp_t;
+
+/* Token representation, start and end coordinates of the dictionary string */
+typedef struct {
+    int start; /* start position in dict string */
+    int end; /* end position in dict string */
+} dptok_t;
+
+/** @brief Parse a simple dictionary in the string dict,
+    since dict might not be \0 terminated it also needs to know the
+    length of the string.
+    The tokens should be pre-allocated to a fixed size supplied by tok_len.
+*/
+static int dp_parse(dp_t dp, const char * dict,
+                    const size_t dict_len, dptok_t * tok, const int tok_len);
+
+/** @brief Comparison of token string to the string s
+ */
+static int dp_eq(const char *dict, const dptok_t *tok, const char *s);
+
+/* END OF FORWARD DECLARATIONS */
 void npio_free(npio_t * np)
 {
     free(np->filename);
@@ -54,6 +83,160 @@ static int npd_parse_descr(npio_t * npd)
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
+}
+
+static npio_dtype
+descr_to_dtype(const char * _descr)
+{
+    const char * descr = _descr;
+    /* Sometimes the descriptor string is enclosed with single quotes
+     */
+    if(_descr[0] == '\'')
+    {
+        descr = _descr + 1;
+    }
+
+    switch(descr[1])
+    {
+    case 'f':
+        switch(descr[2])
+        {
+        case '4':
+            return NPIO_F32;
+            break;
+        case '8':
+            return NPIO_F64;
+            break;
+        }
+        break;
+    case 'i':
+        switch(descr[2])
+        {
+        case '1':
+            return NPIO_I8;
+            break;
+        case '2':
+            return NPIO_I16;
+            break;
+        case '4':
+            return NPIO_I32;
+            break;
+        case '8':
+            return NPIO_I64;
+            break;
+        }
+        break;
+    case 'u':
+        switch(descr[2])
+        {
+        case '1':
+            return NPIO_U8;
+            break;
+        case '2':
+            return NPIO_U16;
+            break;
+        case '4':
+            return NPIO_U32;
+            break;
+        case '8':
+            return NPIO_U64;
+            break;
+        }
+        break;
+    }
+    assert(0);
+    return NPIO_NOSUPPORT;
+}
+
+static const char * npio_type_to_descr(npio_dtype type)
+{
+    switch(type)
+    {
+    case NPIO_F32:
+        return "<f4";
+    case NPIO_F64:
+        return "<f8";
+    case NPIO_I8:
+        return "<i1";
+    case NPIO_I16:
+        return "<i2";
+    case NPIO_I32:
+        return "<i4";
+    case NPIO_I64:
+        return "<i8";
+    case NPIO_U8:
+        return "<u1";
+    case NPIO_U16:
+        return "<u2";
+    case NPIO_U32:
+        return "<u4";
+    case NPIO_U64:
+        return "<u8";
+    case NPIO_NOSUPPORT:
+        return NULL;
+    }
+    return NULL;
+}
+
+static const char * npio_dtype_string(npio_dtype dtype)
+{
+    switch(dtype)
+    {
+    case NPIO_F32:
+        return "NPIO_F32";
+    case NPIO_F64:
+        return "NPIO_F64";
+    case NPIO_I8:
+        return "NPIO_I8";
+    case NPIO_I16:
+        return "NPIO_I16";
+    case NPIO_I32:
+        return "NPIO_I32";
+    case NPIO_I64:
+        return "NPIO_I64";
+    case NPIO_U8:
+        return "NPIO_U8";
+    case NPIO_U16:
+        return "NPIO_U16";
+    case NPIO_U32:
+        return "NPIO_U32";
+    case NPIO_U64:
+        return "NPIO_U64";
+    case NPIO_NOSUPPORT:
+        return "NPIO_NOSUPPORT";
+    }
+    assert(0);
+    return "ERROR";
+}
+
+static int npio_element_size(npio_dtype dtype)
+{
+    switch(dtype)
+    {
+    case NPIO_F32:
+        return 4;
+    case NPIO_F64:
+        return 8;
+    case NPIO_I8:
+        return 1;
+    case NPIO_I16:
+        return 2;
+    case NPIO_I32:
+        return 4;
+    case NPIO_I64:
+        return 8;
+    case NPIO_U8:
+        return 1;
+    case NPIO_U16:
+        return 2;
+    case NPIO_U32:
+        return 4;
+    case NPIO_U64:
+        return 8;
+    case NPIO_NOSUPPORT:
+        return 0;
+    }
+    return 0;
 }
 
 static void print_dtype(FILE * fid, const npio_t * npd)
@@ -126,7 +309,7 @@ static void print_dtype(FILE * fid, const npio_t * npd)
     } else {
         fprintf(fid, ", %d bytes", nbytes);
     }
-    }
+}
 
 
 void npio_print(FILE * fid, const npio_t * np)
@@ -137,6 +320,7 @@ void npio_print(FILE * fid, const npio_t * np)
     }
     fprintf(fid, "filename: %s\n", np->filename);
     fprintf(fid, "descr: %s (", np->descr);
+    fprintf(fid, "npio_dtype: %s\n", npio_dtype_string(np->dtype));
     print_dtype(fid, np);
     fprintf(fid, ")\n");
     fprintf(fid, "np_byte_order: '%c'\n", np->np_byte_order);
@@ -162,10 +346,10 @@ void npio_print(FILE * fid, const npio_t * np)
 }
 
 
-static int write_dictionary(FILE * fid, const int ndim, const int * shape,
+static i64 write_dictionary(FILE * fid, const int ndim, const int * shape,
                             const char * desc_str)
 {
-
+    i64 nwritten = 0;
     if(ndim < 1)
     {
         return EXIT_FAILURE;
@@ -223,86 +407,31 @@ static int write_dictionary(FILE * fid, const int ndim, const int * shape,
     dict[HEADER_LEN++] = '\n';
 
     // write length of dictionary (including the padding)
-    size_t nwritten = fwrite(&HEADER_LEN, 2, 1, fid);
-    if(nwritten != 1)
+    size_t nw = fwrite(&HEADER_LEN, 2, 1, fid);
+    if(nw != 1)
     {
         goto fail;
     }
+    nwritten += 2*1;
 
     // write the dictionary
-    nwritten = fwrite(dict, HEADER_LEN, 1, fid);
-    if(nwritten != 1)
+    nw = fwrite(dict, HEADER_LEN, 1, fid);
+    if(nw != 1)
     {
         goto fail;
     }
-
+    nwritten += HEADER_LEN*1;
     //printf("nelements: %zu\n", nelements);
     free(dict);
-    return EXIT_SUCCESS;
+    return nwritten;
 
 fail:
     free(dict);
-    return EXIT_FAILURE;
+    return -1;
 }
-
-
-static int npio_write_raw(const char * filename,
-                           const int ndim, const int * shape,
-                           const void * data,
-                          size_t nelements, size_t element_size,
-                          const char * desc_str)
-{
-    /// Write 6 byte magic header
-    FILE * fid = fopen(filename, "w");
-    if(fid == NULL)
-    {
-        fprintf(stderr, "npio_save_double: Unable to open %s for writing\n",
-                filename);
-        return EXIT_FAILURE;
-    }
-    char d[] = "\x93NUMPY";
-    size_t nwritten = fwrite(d, 1, 6, fid);
-    if(nwritten != 6)
-    {
-        goto fail;
-    }
-
-    /// Write major and minor version
-    d[0] = 1;
-    d[1] = 0;
-    nwritten = fwrite(d, 1, 2, fid);
-    if(nwritten != 2)
-    {
-        goto fail;
-    }
-
-    /// Write the part of the dictionary that describes the shape
-    int status = write_dictionary(fid, ndim, shape, desc_str);
-    if(status != EXIT_SUCCESS)
-    {
-        goto fail;
-    }
-
-    /// write the data
-    //printf("Will write %zu elements\n", nelements);
-    //printf("First element: %f\n", data[0]);
-    nwritten = fwrite(data, element_size, nelements, fid);
-    if(nwritten != nelements)
-    {
-        goto fail;
-    }
-
-    fclose(fid);
-    return EXIT_SUCCESS;
-
-fail:
-    fclose(fid);
-    return EXIT_FAILURE;
-}
-
 
 static int parse_shape_string(npio_t * npd,
-                               const char * sstring, const int len)
+                              const char * sstring, const int len)
 {
     //printf("To parse shape string: %.*s\n", len, sstring);
     char * str = strndup(sstring, len);
@@ -330,9 +459,9 @@ static int parse_shape_string(npio_t * npd,
             // no digits found
         } else {
             //printf("'%s' -> %d\n", tok, s);
-        shape[ndim] = s;
-        nel *= s;
-        ndim++;
+            shape[ndim] = s;
+            nel *= s;
+            ndim++;
         }
     }
     shape[ndim] = 0; // 0-termination
@@ -378,8 +507,8 @@ npio_t * npio_load(const char * filename)
     if(strncmp(magic, "\x93NUMPY", 6) != 0)
     {
         fprintf(stderr, "npio: Invalid magic number\n");
-            fclose(fid);
-            return NULL;
+        fclose(fid);
+        return NULL;
     }
 
     uint8_t version[2];
@@ -393,7 +522,7 @@ npio_t * npio_load(const char * filename)
     if(version[0] != 1 || version[1] != 0)
     {
         fprintf(stderr, "npio: Numpy file is v %d.%d, only tested for v 1.0\n",
-               (int) version[0], (int) version[1]);
+                (int) version[0], (int) version[1]);
         fclose(fid);
         return NULL;
     }
@@ -425,7 +554,9 @@ npio_t * npio_load(const char * filename)
     //printf("Dictionary: %s\n", dict);
 
     npio_t * npd = calloc(1, sizeof(npio_t));
+    assert(npd != NULL);
     npd->filename = strdup(filename);
+    assert(npd->filename != NULL);
     npd->fortran_order = 1;
 
     // Parse the dictionary
@@ -440,6 +571,8 @@ npio_t * npio_load(const char * filename)
         {
             npd->descr = strndup(dict+t[kk+1].start,
                                  t[kk+1].end-t[kk+1].start);
+            npd->dtype = descr_to_dtype(npd->descr);
+
             if(npd_parse_descr(npd))
             {
                 goto fail;
@@ -456,8 +589,8 @@ npio_t * npio_load(const char * filename)
         else if(dp_eq(dict, t+kk, "'shape'") == 0)
         {
             int ret = parse_shape_string(npd,
-                               dict+t[kk+1].start,
-                               t[kk+1].end-t[kk+1].start);
+                                         dict+t[kk+1].start,
+                                         t[kk+1].end-t[kk+1].start);
             npd->shape_str = strndup(dict+t[kk+1].start,
                                      t[kk+1].end-t[kk+1].start);
             if(ret == EXIT_FAILURE)
@@ -469,10 +602,10 @@ npio_t * npio_load(const char * filename)
             }
         }
         /*
-        printf(" %.*s = ",
-               t[kk].end-t[kk].start, dict + t[kk].start);
-        printf("%.*s\n",
-               t[kk+1].end-t[kk+1].start, dict + t[kk+1].start);
+          printf(" %.*s = ",
+          t[kk].end-t[kk].start, dict + t[kk].start);
+          printf("%.*s\n",
+          t[kk+1].end-t[kk+1].start, dict + t[kk+1].start);
         */
     }
 
@@ -482,7 +615,7 @@ npio_t * npio_load(const char * filename)
     {
         fprintf(stderr, "Failed to read the data type description\n");
         goto fail;
-        }
+    }
 
     // Forward to the data
     long pos = ftell(fid);
@@ -528,9 +661,9 @@ npio_t * npio_load(const char * filename)
     npd->data = data;
     return npd;
 
- fail1:
+fail1:
     free(data);
- fail:
+fail:
     npio_free(npd);
     npd = NULL;
     fclose(fid);
@@ -539,30 +672,230 @@ npio_t * npio_load(const char * filename)
 
 /* Save function signature */
 
-#define NPIO_SAVE(x, y)                                  \
-int npio_save_## x(const char * filename,                \
-                     const int ndim, const int * shape,  \
-                     const x * data)                     \
-{                                                        \
-    size_t nelements = 1;                                \
-    for(int kk = 0; kk<ndim; kk++)                       \
-    {                                                    \
-        nelements *= shape[kk];                          \
-    }                                                    \
-    size_t element_size = sizeof(x);                     \
-    return npio_write_raw(filename, ndim, shape,         \
-                          (void *) data,                 \
-                          nelements, element_size,       \
-                          y);                            \
-}                                                        \
+int64_t
+npio_write_FILE(FILE * fid,
+                const int ndim,
+                const int * shape,
+                void * data,
+                npio_dtype type_in, npio_dtype type_out)
+{
+    if(type_in != type_out)
+    {
+        fprintf(stdout, "Input and output format combination not supported\n");
+        return -1;
+    }
+    if(type_in == NPIO_NOSUPPORT)
+    {
+        fprintf(stderr, "Unknown/unsupported input data type\n");
+        fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+        return -1;
+    }
+    if(type_out == NPIO_NOSUPPORT)
+    {
+        fprintf(stderr, "Unknown/unsupported output data type\n");
+        fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+        return -1;
+    }
+    size_t nwritten = 0;
 
-NPIO_SAVE(f64, "<f8")
-NPIO_SAVE(f32, "<f4")
-NPIO_SAVE(i8, "|i1")
-NPIO_SAVE(i16, "<i2")
-NPIO_SAVE(i32, "<i4")
-NPIO_SAVE(i64, "<i8")
-NPIO_SAVE(u8, "|u1")
-NPIO_SAVE(u16, "<u2")
-NPIO_SAVE(u32, "<u4")
-NPIO_SAVE(u64, "<u8")
+    size_t nelements = 1;
+    for(int kk = 0; kk<ndim; kk++)
+    {
+        nelements *= shape[kk];
+    }
+
+    char d[] = "\x93NUMPY";
+    size_t nw = fwrite(d, 1, 6, fid);
+    if(nw != 6)
+    {
+        printf("Failed to write %s %d\n", __FILE__, __LINE__);
+        goto fail;
+    }
+    nwritten += 6*1;
+
+    /// Write major and minor version
+    d[0] = 1;
+    d[1] = 0;
+    nw = fwrite(d, 1, 2, fid);
+    if(nw != 2)
+    {
+        fprintf(stdout, "Failed to write version\n");
+        goto fail;
+    }
+    nwritten += 1*2;
+
+    /// Write the part of the dictionary that describes the shape
+    const char * desc_str = npio_type_to_descr(type_in);
+    i64 inw = write_dictionary(fid, ndim, shape, desc_str);
+    if(inw < 0)
+    {
+        printf("Failed writing dictionary\n");
+        goto fail;
+    }
+    nwritten += inw;
+
+    /// write the data
+    //printf("Will write %zu elements\n", nelements);
+    //printf("First element: %f\n", data[0]);
+    int element_size = npio_element_size(type_in);
+    assert(element_size > 0);
+    nw = fwrite(data, element_size, nelements, fid);
+    if(nw != (size_t) nelements)
+    {
+        fprintf(stderr, "Failed to write data %s %d\n", __FILE__, __LINE__);
+        printf("Expeced nw = %ld == nelements %lu\n", nw, nelements);
+        printf("element_size: %u\n", element_size);
+        goto fail;
+    }
+    nwritten += element_size*nelements;
+    return nwritten;
+
+fail:
+    return -1;
+}
+
+
+i64 npio_write(const char * fname,
+               const int ndim,
+               const int * shape,
+               void * data,
+               npio_dtype dtin, npio_dtype dtout)
+{
+    FILE * fid = fopen(fname, "wb");
+    if(fid == NULL)
+    {
+        printf("Unable to open %s for writing\n", fname);
+        return -1;
+    }
+    i64 nwritten = npio_write_FILE(fid, ndim, shape, data, dtin, dtout);
+    fclose(fid);
+    return nwritten;
+}
+
+
+/* DICTIONARY PARSER */
+
+    static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
+{
+    assert(dict != NULL);
+    assert(tok != NULL);
+    assert(s != NULL);
+
+    int len = (int) strnlen(s, tok->end - tok->start);
+
+    if(len == 0)
+    {
+        return -1;
+    }
+
+    if (len != tok->end - tok->start)
+    {
+        return -1;
+    }
+
+    if(strncmp(dict + tok->start, s, tok->end - tok->start) == 0)
+    {
+        return 0;
+    }
+    return -1;
+}
+
+static int dp_parse(dp_t dp, const char * dict,
+                    const size_t dict_len, dptok_t * tok, const int tok_len)
+{
+    dp.pos = 0; /* position in dict string */
+    dp.toknext = 0; /* next token to write to */
+
+    /* Find first '{' while ignoring white spaces */
+    while(dict[dp.pos] != '{' && dp.pos < dict_len)
+    {
+        if( dp.pos == dict_len)
+        {
+            return 0;
+        }
+        dp.pos++;
+    }
+
+    /* States:
+     * 0: looking for key to start '
+     * 1: looking for key to end ''
+     * 2: looking for ':'
+     * 3: looking for value to start nonwhite
+     * 4: looking for value to end ,
+     */
+    int state = 0;
+    int nest = 0; /* Keep track of parentheses */
+    while( dp.pos < dict_len)
+    {
+        char c = dict[dp.pos];
+        if(state == 0) /* looking for key to start */
+        {
+            if(c == '\'')
+            {
+                state = 1;
+                tok[dp.toknext].start = dp.pos;
+                goto nextchar;
+            }
+        }
+        if(state == 1) /* looking for key to end */
+        {
+            if(c == '\'')
+            {
+                state = 2;
+                tok[dp.toknext].end = dp.pos+1;
+                dp.toknext++;
+                goto nextchar;
+            }
+        }
+        if(state == 2)
+        {
+            if(c == ':') /* looking for key:value separator */
+            {
+                state = 3;
+                goto nextchar;
+            }
+        }
+        if(state == 3) /* looking for start of value */
+        {
+            nest = 0;
+            if(c != ' ')
+            {
+                if(c == '(')
+                {
+                    nest ++;
+                }
+
+                state = 4;
+                tok[dp.toknext].start = dp.pos;
+                goto nextchar;
+            }
+        }
+        if(state == 4) /* looking for end of value */
+        {
+            if( c == ')')
+            {
+                nest--;
+            }
+            if( c == '(')
+            {
+                nest++;
+            }
+            if( nest == 0 && c == ',')
+            {
+                state = 0;
+                tok[dp.toknext].end = dp.pos;
+                dp.toknext++;
+                goto nextchar;
+            }
+        }
+    nextchar: ;
+        dp.pos++;
+        if(dp.toknext == tok_len)
+        {
+            // Could warn here...
+            return dp.toknext;
+        }
+    }
+    //printf("\n");
+    return dp.toknext;
+}

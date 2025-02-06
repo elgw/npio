@@ -11,8 +11,8 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 
-add_library( npio src/npio.c src/dp.c )
-set_target_properties(npio PROPERTIES PUBLIC_HEADER "include/npio.h")
+add_library( npio src/npio.c )
+set_target_properties(npio PROPERTIES PUBLIC_HEADER "src/npio.h")
 
 target_include_directories(npio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include

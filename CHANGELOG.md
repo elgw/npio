@@ -1,5 +1,13 @@
 # Version history
 
+## 0.0.7
+- Possible to write directly to a file descriptor with `npio_write_FILE`.
+- API change, there is now only `npio_write` and `npio_write_FILE` for
+  writing data and they return the number of written bytes on success.
+
+## 0.0.6
+- Single source file, `dp.c/h` is now integrated into `npio.c/h`.
+
 ## 0.0.5
 - Fixed issue in opening large files.
 

@@ -35,7 +35,9 @@ def benchmark(folder, N=1000):
     print(f"To load {filename} {N} times took {t_load:.4f} s")
     print(f"To write {filename_out} {N} times took {t_write:.4f} s")
     print(' -- using c_numpy_io:')
-    subprocess.run(["./npio", "--benchmark", filename, filename_out])
+    cmd = ["./npio", "--benchmark", filename, filename_out];
+    print(f"cmd: {' '.join(cmd)}")
+    subprocess.run(cmd)
 
 
 def load_save_validate_file(fe):
@@ -44,7 +46,7 @@ def load_save_validate_file(fe):
     fe_out = fe + 'resave.npy'
     A = np.load(fe)
     cmd = ["./npio", "--resave",  fe, fe_out]
-    # print(f"Running {' '.join(cmd)}")
+    print(f"Running {' '.join(cmd)}")
     subprocess.run(cmd)
     # print(f"Loading '{fe_out}'")
     try:
@@ -59,6 +61,7 @@ def load_save_validate_file(fe):
         print("A and B are not equal!")
         print(f"A = {A}")
         print(f"B = {B}")
+        assert(0);
 
 
 def test_load_save(folder):

@@ -13,6 +13,8 @@
 
 #include "npio.h"
 
+typedef int64_t i64;
+
 void show_endian(void)
 {
     uint32_t x = 1;
@@ -47,12 +49,15 @@ int test_double(void)
     sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
 
     printf("Writing to %s\n", outname);
-    int status = npio_save_f64(outname, ndim, dim, D);
-    if(status != EXIT_SUCCESS)
+    i64 nwritten = npio_write(outname, ndim, dim, (void*) D,
+                            NPIO_F64, NPIO_F64);
+    printf("Wrote %ld bytes\n", nwritten);
+    if(nwritten <= 0)
     {
+        printf("%ld bytes written\n", nwritten);
         free(D);
         free(outname);
-        return status;
+        return EXIT_FAILURE;
     }
 
     printf("Reading from %s\n", outname);
@@ -108,12 +113,14 @@ int test_float(void)
     sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
 
     printf("Writing float array to %s\n", outname);
-    int status = npio_save_f32(outname, ndim, dim, D);
-    if(status != EXIT_SUCCESS)
+    i64 nwritten = npio_write(outname, ndim, dim, (void*) D,
+                            NPIO_F32, NPIO_F32);
+    printf("Wrote %ld bytes\n", nwritten);
+    if(nwritten < 0)
     {
         free(D);
         free(outname);
-        return status;
+        return EXIT_FAILURE;
     }
 
     printf("Reading from %s\n", outname);
@@ -189,7 +196,8 @@ void show(char * from)
     np = NULL;
 }
 
-void resave(char * from, char * to)
+static void
+resave(const char * from, const char * to)
 {
     npio_t * np = npio_load(from);
     if(np == NULL)
@@ -197,75 +205,20 @@ void resave(char * from, char * to)
         printf("Failed to load %s\n", from);
         exit(EXIT_FAILURE);;
     }
-    assert(np->descr != NULL);
-    int status = EXIT_FAILURE;
-    if(strncmp(np->descr, "'<f8'", 5) == 0)
-    {
-        status = npio_save_f64(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
+    i64 nwritten = npio_write(to, np->ndim, np->shape, np->data,
+                              np->dtype, np->dtype);
 
-    if(strncmp(np->descr, "'|i1'", 5) == 0)
-    {
-        status = npio_save_i8(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'<i2'", 5) == 0)
-    {
-        status = npio_save_i16(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'<i4'", 5) == 0)
-    {
-        status = npio_save_i32(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'<i8'", 5) == 0)
-    {
-        status = npio_save_i64(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'|u1'", 5) == 0)
-    {
-        status = npio_save_u8(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'<u2'", 5) == 0)
-    {
-        status = npio_save_u16(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'<u4'", 5) == 0)
-    {
-        status = npio_save_u32(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    if(strncmp(np->descr, "'<u8'", 5) == 0)
-    {
-        status = npio_save_u64(to, np->ndim, np->shape, np->data);
-        goto leave;
-    }
-
-    fprintf(stderr, "Error: Does not know how to write the data type %s\n", np->descr);
-    npio_free(np);
-    np = NULL;
-    return;
-
-leave: ;
-    if(status != EXIT_SUCCESS)
+    if(nwritten <= 0)
     {
         printf("Failed to write to %s\n", to);
+        printf("This is what was read:\n");
+        npio_print(stdout, np);
         exit(EXIT_FAILURE);
     }
+
     npio_free(np);
     np = NULL;
+
     return;
 }
 
@@ -306,9 +259,10 @@ static void bench(char * from, char * to)
     clock_gettime(CLOCK_REALTIME, &tstart);
     for(size_t kk = 0; kk < N; kk++)
     {
-        int status = npio_save_f64(to, np->ndim, np->shape, np->data);
+        i64 nwritten = npio_write(to, np->ndim, np->shape, np->data,
+                                NPIO_F64, NPIO_F64);
 
-        if(status != EXIT_SUCCESS)
+        if(nwritten < 0)
         {
             printf("Failed to write to %s\n", to);
             exit(EXIT_FAILURE);
