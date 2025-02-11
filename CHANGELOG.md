@@ -1,5 +1,9 @@
 # Version history
 
+## 0.0.8
+- Dropped the `unistd.h` dependency.
+- Added `npio_load_metadata` to load only metadata.
+
 ## 0.0.7
 - Possible to write directly to a file descriptor with `npio_write_FILE`.
 - API change, there is now only `npio_write` and `npio_write_FILE` for

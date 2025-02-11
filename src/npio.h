@@ -11,7 +11,7 @@
 
 #define NPIO_VERSION_MAJOR "0"
 #define NPIO_VERSION_MINOR "0"
-#define NPIO_VERSION_PATCH "7"
+#define NPIO_VERSION_PATCH "8"
 #define NPIO_version NPIO_VERSION_MAJOR "."     \
     NPIO_VERSION_MINOR "."                      \
     NPIO_VERSION_PATCH
@@ -55,6 +55,9 @@ typedef struct{
  *    npio_free(np); // will ignore np->data
  */
 npio_t * npio_load(const char * filename);
+
+/* Read the metadata but do not load the data */
+npio_t * npio_load_metadata(const char * filename);
 
 /* Write data to a file decriptor, such as retrieved from fopen or fmemopen
  * return the number of bytes written or -1 on failure
