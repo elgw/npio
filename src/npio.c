@@ -433,16 +433,26 @@ static int parse_shape_string(npio_t * npd,
 {
     //printf("To parse shape string: %.*s\n", len, sstring);
     char * str = strndup(sstring, len);
+    if(str == NULL)
+    {
+        return EXIT_FAILURE;
+    }
     //printf("<%s>\n", str);
     str[len-1] = ' ';
     str[0] = ' ';
     //printf("<%s>\n", str);
 
     char * saveptr = NULL;
-    char * str1 = str;
     int ndim = 0;
     size_t nel = 1;
     int * shape = malloc(len*sizeof(int)); // more than big enough
+    if(shape == NULL)
+    {
+        free(str);
+        return EXIT_FAILURE;
+    }
+
+    char * str1 = NULL;
     for(str1 = str; ; str1 = NULL)
     {
         char * tok = strtok_r(str1, ",", &saveptr);
