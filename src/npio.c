@@ -24,6 +24,28 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+
+#ifdef WIN32
+static char * strndup(const char * S, size_t n)
+{
+    char * Y = calloc(n+1, 1);
+    if(Y == NULL)
+    {
+        return NULL;
+    }
+    Y[n] = '\0';
+    for(size_t kk = 0; kk < n; kk++)
+    {
+        Y[kk] = S[kk];
+        if(Y[kk] == '\0')
+        {
+            break;
+        }
+    }
+    return Y;
+}
+#endif
+
 /* FORWARD DECLARATIONS FOR DICTIONARY PARSER */
 
 /* A dictionary-string parser,
@@ -388,11 +410,8 @@ static int parse_shape_string(npio_t * npd,
                               const char * sstring, const int len)
 {
     //printf("To parse shape string: %.*s\n", len, sstring);
-#ifdef _WIN32
-    char * str = strdup(sstring);
-#else
     char * str = strndup(sstring, len);
-#endif
+
     if(str == NULL)
     {
         return EXIT_FAILURE;
@@ -561,8 +580,10 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     {
         if(dp_eq(dict, t+kk, "'descr'") == 0)
         {
+
             npd->descr = strndup(dict+t[kk+1].start,
                                  t[kk+1].end-t[kk+1].start);
+
             npd->dtype = descr_to_dtype(npd->descr);
 
             if(npd_parse_descr(npd))
