@@ -1,0 +1,7 @@
+// cmake generates npio_config.h from npio_config.h.in
+#define NPIO_VERSION_MAJOR "${npio_VERSION_MAJOR}"
+#define NPIO_VERSION_MINOR "${npio_VERSION_MINOR}"
+#define NPIO_VERSION_PATCH "${npio_VERSION_PATCH}"
+#define NPIO_VERSION NPIO_VERSION_MAJOR "."     \
+    NPIO_VERSION_MINOR "."                      \
+    NPIO_VERSION_PATCH

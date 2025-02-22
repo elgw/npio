@@ -9,20 +9,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define NPIO_VERSION_MAJOR "0"
-#define NPIO_VERSION_MINOR "0"
-#define NPIO_VERSION_PATCH "8"
-#define NPIO_version NPIO_VERSION_MAJOR "."     \
-    NPIO_VERSION_MINOR "."                      \
-    NPIO_VERSION_PATCH
-
 typedef enum
-{ NPIO_F64,
-  NPIO_F32,
-  NPIO_U8, NPIO_U16, NPIO_U32, NPIO_U64,
-  NPIO_I8, NPIO_I16, NPIO_I32, NPIO_I64,
-  NPIO_NOSUPPORT
-} npio_dtype;
+    { NPIO_F64,
+      NPIO_F32,
+      NPIO_U8, NPIO_U16, NPIO_U32, NPIO_U64,
+      NPIO_I8, NPIO_I16, NPIO_I32, NPIO_I64,
+      NPIO_NOSUPPORT
+    } npio_dtype;
 
 
 /* This is what is returned from npio_load */
@@ -66,16 +59,31 @@ int64_t
 npio_write_FILE(FILE * fid,
                 const int ndim,
                 const int * shape,
-                void * data,
+                const void * data,
                 npio_dtype in, npio_dtype out);
 
 int64_t
 npio_write(const char * fname,
            const int ndim,
            const int * shape,
-           void * data,
+           const void * data,
            npio_dtype in, npio_dtype out);
 
+/* Write an npy file to a memory buffer
+*
+* On success:
+* returns a memory buffer of mem_size bytes
+*
+* On failure:
+* returns NULL
+*/
+void *
+npio_write_mem(const int ndim,
+               const int * shape,
+               const void * data,
+               npio_dtype in,
+               npio_dtype out,
+               int64_t * mem_size);
 
 /** @brief Print some info about the npio_t object
  *
@@ -85,3 +93,13 @@ void npio_print(FILE *, const npio_t * np);
 /**  Free an npio_t object
  */
 void npio_free(npio_t * np);
+
+/* npio_version returns the version number of the library in the
+   format "$MAJOR.$MINOR.$PATCH"
+*/
+
+const char * npio_version(void);
+
+int npio_version_major(void);
+int npio_version_minor(void);
+int npio_version_patch(void);

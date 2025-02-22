@@ -1,5 +1,14 @@
 # Version history
 
+## 0.0.9
+Planned:
+ - Added `npio_write_mem` to write an npy file to a memory buffer,
+   this could be useful when in-memory compression is wanted (npz via libzip
+   etc).
+ - Removed usage of `open_memstream` so that the library can be
+   compiled on windows (not tested).
+ - Moved version info from header file to source.
+
 ## 0.0.8
 - Dropped the `unistd.h` dependency.
 - Added `npio_load_metadata` to load only metadata.

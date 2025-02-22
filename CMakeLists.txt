@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.9)
 
+# TODO: Default should be to build a static library, that makes most sense
+# when including as a submodule
+
 project(npio
+  VERSION 0.0.9
   LANGUAGES C)
 
 set (CMAKE_C_STANDARD 11)
@@ -10,12 +14,28 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# Don't install to /usr/local/ use /usr/
+set( CMAKE_INSTALL_PREFIX
+  /usr )
 
-add_library( npio src/npio.c )
-set_target_properties(npio PROPERTIES PUBLIC_HEADER "src/npio.h")
+add_library( npio_shared SHARED src/npio.c )
+set_property(TARGET npio_shared PROPERTY OUTPUT_NAME npio)
 
-target_include_directories(npio PUBLIC
+set_target_properties(npio_shared PROPERTIES PUBLIC_HEADER "src/npio.h")
+set_target_properties(npio_shared PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION})
+
+# Replace variables by their values
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/npio_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/npio_config.h)
+
+target_include_directories(npio_shared PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-INSTALL(TARGETS npio)
+add_executable( npio_cli src/npio_cli.c src/npio.c )
+set_property(TARGET npio_cli PROPERTY OUTPUT_NAME npio)
+
+# Note the value of CMAKE_INSTALL_PREFIX
+include(GNUInstallDirs)
+INSTALL(TARGETS npio_shared
+  LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR})

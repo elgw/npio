@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 
 #include "npio.h"
+#include "npio_config.h"
 
 typedef double f64;
 typedef float f32;
@@ -343,89 +344,38 @@ void npio_print(FILE * fid, const npio_t * np)
             np->nel, np->np_bytes, np->data_size);
 }
 
-
-static i64 write_dictionary(FILE * fid, const int ndim, const int * shape,
-                            const char * desc_str)
+static char *
+gen_dictionary(int ndim, const int * shape, npio_dtype type_in)
 {
-    i64 nwritten = 0;
-    if(ndim < 1)
-    {
-        return EXIT_FAILURE;
-    }
+    const i64 dict_alloc = ndim*12 + 128;
+    i64 offset = 0;
+    char * dict = calloc(dict_alloc, 1);
+    assert(dict != NULL);
+    offset += snprintf(dict+offset, dict_alloc-offset,
+                       "{'descr': '%s', 'fortran_order': False, 'shape': ",
+                       npio_type_to_descr(type_in));
 
-    /// Create the shape string i.e. something like (2, 3,)
-    char *shape_str;
-    size_t size;
-    FILE *stream = open_memstream(&shape_str, &size);
-    if(stream == NULL)
-    {
-        return EXIT_FAILURE;
-    }
-
-    fprintf(stream, "(");
+    offset += snprintf(dict+offset, dict_alloc-offset,
+                       "( ");
     for(int kk = 0; kk+1<ndim; kk++)
     {
-        fprintf(stream, "%d, ", shape[kk]);
+        offset += snprintf(dict+offset, dict_alloc-offset,
+                           "%d, ", shape[kk]);
     }
-    fprintf(stream, "%d,", shape[ndim-1]);
-    fprintf(stream, ")");
-    fclose(stream);
-    //printf("Will write shape_str: %s\n", shape_str);
-
-    /// Write the header
-    // - header should end with '\n' and then be padded by '\x20'
-    // so that
-    // len(magic string) + 2 + len(length) + HEADER_LEN should be
-    // divisible by 64
-    // i.e. HEADER_LEN + 10 should be divisible by 64.
-
-    char * dict = malloc(128+strlen(shape_str));
-    if(dict == NULL)
+    offset += snprintf(dict+offset, dict_alloc-offset,
+                       "%d)", shape[ndim-1]);
+    offset += snprintf(dict+offset, dict_alloc-offset,
+                       ", }");
+    while( (10 + offset) % 64 != 63)
     {
-        return EXIT_FAILURE;
+        offset += snprintf(dict+offset, dict_alloc-offset,
+                           "\x20");
     }
-
-    sprintf(dict,
-            "{'descr': '%s', 'fortran_order': False, 'shape': %s, }",
-            desc_str, shape_str);
-    free(shape_str);
-
-    // printf("dict to write: %s\n", dict);
-
-    size_t _HEADER_LEN = strlen(dict);
-    if(_HEADER_LEN > 2<<16)
-    {
-        goto fail;
-    }
-    uint16_t HEADER_LEN = (uint16_t) _HEADER_LEN;
-    while( (10 + HEADER_LEN) % 64 != 63)
-    {
-        dict[HEADER_LEN++] = '\x20';
-    }
-    dict[HEADER_LEN++] = '\n';
-
-    // write length of dictionary (including the padding)
-    size_t nw = fwrite(&HEADER_LEN, 2, 1, fid);
-    if(nw != 1)
-    {
-        goto fail;
-    }
-    nwritten += 2*1;
-
-    // write the dictionary
-    nw = fwrite(dict, HEADER_LEN, 1, fid);
-    if(nw != 1)
-    {
-        goto fail;
-    }
-    nwritten += HEADER_LEN*1;
-    //printf("nelements: %zu\n", nelements);
-    free(dict);
-    return nwritten;
-
-fail:
-    free(dict);
-    return -1;
+    offset += snprintf(dict+offset, dict_alloc-offset,
+                       "\n");
+    assert(dict_alloc > offset);
+    dict[offset] = '\0';
+    return dict;
 }
 
 static int parse_shape_string(npio_t * npd,
@@ -671,10 +621,8 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     }
     npd->data_size = npd->np_bytes*npd->nel;
     npd->data = data;
- post_data:
+post_data:
     fclose(fid);
-
-
     return npd;
 
 fail1:
@@ -697,13 +645,11 @@ npio_t * npio_load_metadata(const char * filename)
 }
 
 
-
-
 int64_t
 npio_write_FILE(FILE * fid,
                 const int ndim,
                 const int * shape,
-                void * data,
+                const void * data,
                 npio_dtype type_in, npio_dtype type_out)
 {
     if(type_in != type_out)
@@ -751,15 +697,18 @@ npio_write_FILE(FILE * fid,
     }
     nwritten += 1*2;
 
-    /// Write the part of the dictionary that describes the shape
-    const char * desc_str = npio_type_to_descr(type_in);
-    i64 inw = write_dictionary(fid, ndim, shape, desc_str);
-    if(inw < 0)
-    {
-        printf("Failed writing dictionary\n");
-        goto fail;
-    }
-    nwritten += inw;
+    // Generate the dictionary
+    // write the size of the dictionary
+    // write the dictionary
+    char * dictionary = gen_dictionary(ndim, shape, type_in);
+    u16 dlen = strlen(dictionary);
+    f64 hl = fwrite(&dlen, 2, 1, fid);
+    assert(hl == 1);
+    i64 inw = fwrite(dictionary, 1, dlen, fid);
+    assert(inw == dlen);
+    free(dictionary);
+
+    nwritten += inw + hl;
 
     /// write the data
     //printf("Will write %zu elements\n", nelements);
@@ -785,7 +734,7 @@ fail:
 i64 npio_write(const char * fname,
                const int ndim,
                const int * shape,
-               void * data,
+               const void * data,
                npio_dtype dtin, npio_dtype dtout)
 {
     FILE * fid = fopen(fname, "wb");
@@ -799,10 +748,64 @@ i64 npio_write(const char * fname,
     return nwritten;
 }
 
+void *
+npio_write_mem(const int ndim,
+               const int * shape,
+               const void * data,
+               npio_dtype type_in,
+               npio_dtype type_out,
+               int64_t * mem_size)
+{
+    if(type_in != type_out)
+    {
+        fprintf(stdout, "Input and output format combination not supported\n");
+        return NULL;
+    }
+    if(type_in == NPIO_NOSUPPORT)
+    {
+        fprintf(stderr, "Unknown/unsupported input data type\n");
+        fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+        return NULL;
+    }
+    if(type_out == NPIO_NOSUPPORT)
+    {
+        fprintf(stderr, "Unknown/unsupported output data type\n");
+        fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    size_t nelements = 1;
+    for(int kk = 0; kk<ndim; kk++)
+    {
+        nelements *= shape[kk];
+    }
+    int element_size = npio_element_size(type_in);
+
+    char * dictionary = gen_dictionary(ndim, shape, type_in);
+    uint8_t * buff = calloc(10 + strlen(dictionary) + nelements*element_size, 1);
+    size_t dictionary_size = strlen(dictionary);
+    char header[6] = "\x93NUMPY";
+    memcpy(buff, header, 6);
+    buff[6] = 1;
+    buff[7] = 0;
+    u16 * _dsize = (u16*) (buff+8);
+    _dsize[0] = dictionary_size;
+    assert( (10 + dictionary_size) % 64 == 0);
+    /* Write the dictionary */
+    memcpy(buff + 10, dictionary, dictionary_size);
+    free(dictionary);
+
+    /* Copy the data */
+    memcpy(buff+(10+dictionary_size), data, element_size*nelements);
+
+    /* Set the final size */
+    *mem_size = 10+dictionary_size + element_size*nelements;
+    return buff;
+}
 
 /* DICTIONARY PARSER */
 
-    static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
+static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
 {
     assert(dict != NULL);
     assert(tok != NULL);
@@ -925,4 +928,24 @@ static int dp_parse(dp_t dp, const char * dict,
     }
     //printf("\n");
     return dp.toknext;
+}
+
+const char * npio_version(void)
+{
+    return NPIO_VERSION;
+}
+
+int npio_version_major(void)
+{
+    return atoi(NPIO_VERSION_MAJOR);
+}
+
+int npio_version_minor(void)
+{
+    return atoi(NPIO_VERSION_MINOR);
+}
+
+int npio_version_patch(void)
+{
+    return atoi(NPIO_VERSION_PATCH);
 }

@@ -29,7 +29,7 @@ void show_endian(void)
     return;
 }
 
-int test_double(void)
+int test_double(int mem)
 {
     int M = 2;
     int N = 2;
@@ -47,19 +47,28 @@ int test_double(void)
     assert(outname != NULL);
 
     sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
-
     printf("Writing to %s\n", outname);
-    i64 nwritten = npio_write(outname, ndim, dim, (void*) D,
+    if(mem == 1)
+    {
+        i64 buff_size;
+        void * buff = npio_write_mem(ndim, dim, (void*) D, NPIO_F64, NPIO_F64, &buff_size);
+        FILE * fid = fopen(outname, "wb");
+        fwrite(buff, buff_size, 1, fid);
+        fclose(fid);
+        free(buff);
+    } else {
+        i64 nwritten = npio_write(outname, ndim, dim, (void*) D,
                             NPIO_F64, NPIO_F64);
-    printf("Wrote %ld bytes\n", nwritten);
-    if(nwritten <= 0)
+
+        printf("Wrote %ld bytes\n", nwritten);
+        if(nwritten <= 0)
     {
         printf("%ld bytes written\n", nwritten);
         free(D);
         free(outname);
         return EXIT_FAILURE;
     }
-
+    }
     printf("Reading from %s\n", outname);
     npio_t * np = npio_load(outname);
     if(np == NULL)
@@ -158,10 +167,16 @@ int test_float(void)
 int unittest()
 {
     show_endian();
-    printf("-> Testing write/read double\n");
-    if(test_double())
+    printf("-> Testing write/read double (npio_write)\n");
+    if(test_double(0))
     {
-        fprintf(stderr, "test_double failed\n");
+        fprintf(stderr, "test_double(0) failed\n");
+        return EXIT_FAILURE;
+    }
+    printf("-> Testing write/read double (npio_write_mem\n");
+    if(test_double(1))
+    {
+        fprintf(stderr, "test_double(1) failed\n");
         return EXIT_FAILURE;
     }
     printf("-> Testing write/read float\n");
@@ -281,7 +296,8 @@ static void bench(char * from, char * to)
 
 void show_usage(char ** argv)
 {
-    printf("NPIO version %s\n", NPIO_version);
+    printf("NPIO version %s\n",
+           npio_version());
     printf("\n");
     printf("A program to inspect Numpy npy files using libnpio\n");
     printf("\n");
