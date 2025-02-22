@@ -384,14 +384,14 @@ gen_dictionary(int ndim, const int * shape, npio_dtype type_in)
                        npio_type_to_descr(type_in));
 
     offset += snprintf(dict+offset, dict_alloc-offset,
-                       "( ");
+                       "(");
     for(int kk = 0; kk+1<ndim; kk++)
     {
         offset += snprintf(dict+offset, dict_alloc-offset,
                            "%d, ", shape[kk]);
     }
     offset += snprintf(dict+offset, dict_alloc-offset,
-                       "%d)", shape[ndim-1]);
+                       "%d,)", shape[ndim-1]);
     offset += snprintf(dict+offset, dict_alloc-offset,
                        ", }");
     while( (10 + offset) % 64 != 63)
