@@ -653,7 +653,7 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     size_t nBytes = (u64) npd->nel* (u64) npd->np_bytes;
     // Don't be tricked to allocate more memory than the actual
     // file size
-    if(nBytes > filesize)
+    if(nBytes > (size_t) filesize)
     {
         fprintf(stderr, "npio: nBytes=%zu, file size=%zu\n", nBytes, filesize);
         fprintf(stderr, "npio: corrupt npy file?\n");
