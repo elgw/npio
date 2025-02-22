@@ -3,3 +3,4 @@
 npio
 libnpio.a
 testdata/
+build/
