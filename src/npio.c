@@ -4,6 +4,12 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#ifdef Win32
+#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES
+#define _CRT_SECURE_NO_WARNINGS
+#include <sys/types.h>
+#endif
+
 #include "npio.h"
 #include "npio_config.h"
 
@@ -430,9 +436,28 @@ static int parse_shape_string(npio_t * npd,
     return EXIT_SUCCESS;
 }
 
+static i64 get_file_size(FILE * fid)
+{
+#ifdef Win32
+    struct _stat64 info;
+    if(_fstat64(fileno(fid), &info))
+    {
+        return -1;
+    }
+    return info.st_size;
+#else
+    struct stat info;
+    if(fstat(fileno(fid), &info))
+    {
+        return -1;
+    }
+    return info.st_size;
+#endif
+}
+
 npio_t * npio_load_opts(const char * filename, int load_data)
 {
-    FILE * fid = fopen(filename, "r");
+    FILE * fid = fopen(filename, "rb");
     if(fid == NULL)
     {
         fprintf(stderr,
@@ -440,8 +465,9 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         return NULL;
     }
 
-    struct stat info;
-    if(fstat(fileno(fid), &info) != 0)
+    i64 filesize = get_file_size(fid);
+
+    if(filesize <= 0)
     {
         fprintf(stderr,
                 "npio: could not fstat %s\n", filename);
@@ -449,7 +475,7 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         return NULL;
     }
 
-    size_t filesize = info.st_size;
+
 
     // Check magic number and version
     char magic[] = "123456";

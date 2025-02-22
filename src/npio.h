@@ -3,18 +3,25 @@
 /* A library to read/write numpy .npy-files
  * see npio_cli.c for example usage.
  *
+ * Only intended for/tested on numeric arrays.
+ *
  * web: https://www.github.com/elgw/npio
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 #include <stdio.h>
 
 typedef enum
-    { NPIO_F64,
-      NPIO_F32,
-      NPIO_U8, NPIO_U16, NPIO_U32, NPIO_U64,
-      NPIO_I8, NPIO_I16, NPIO_I32, NPIO_I64,
-      NPIO_NOSUPPORT
+    {
+        NPIO_F64,
+        NPIO_F32,
+        NPIO_U8, NPIO_U16, NPIO_U32, NPIO_U64,
+        NPIO_I8, NPIO_I16, NPIO_I32, NPIO_I64,
+        NPIO_NOSUPPORT
     } npio_dtype;
 
 
@@ -62,6 +69,9 @@ npio_write_FILE(FILE * fid,
                 const void * data,
                 npio_dtype in, npio_dtype out);
 
+/* Write to a file given by its name. Overwrites existing files by
+ * default */
+
 int64_t
 npio_write(const char * fname,
            const int ndim,
@@ -70,13 +80,13 @@ npio_write(const char * fname,
            npio_dtype in, npio_dtype out);
 
 /* Write an npy file to a memory buffer
-*
-* On success:
-* returns a memory buffer of mem_size bytes
-*
-* On failure:
-* returns NULL
-*/
+ *
+ * On success:
+ * returns a memory buffer of mem_size bytes
+ *
+ * On failure:
+ * returns NULL
+ */
 void *
 npio_write_mem(const int ndim,
                const int * shape,
@@ -85,8 +95,7 @@ npio_write_mem(const int ndim,
                npio_dtype out,
                int64_t * mem_size);
 
-/** @brief Print some info about the npio_t object
- *
+/** Print some info about the npio_t object
  */
 void npio_print(FILE *, const npio_t * np);
 
@@ -103,3 +112,7 @@ const char * npio_version(void);
 int npio_version_major(void);
 int npio_version_minor(void);
 int npio_version_patch(void);
+
+#ifdef __cplusplus
+}
+#endif
