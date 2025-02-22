@@ -9,11 +9,22 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#include <unistd.h>
+
 
 #include "npio.h"
 
 typedef int64_t i64;
+
+static void gettime(struct timespec * t)
+{
+#ifdef Win32
+    timespec_get(t, TIME_UTC); // since C11
+#else
+    clock_gettime(CLOCK_REALTIME, t);
+#endif
+    return;
+}
+
 
 void show_endian(void)
 {
@@ -249,7 +260,7 @@ static void bench(char * from, char * to)
     size_t N = 1000;
 
     struct timespec tstart, tend;
-    clock_gettime(CLOCK_REALTIME, &tstart);
+    gettime(&tstart);
     for(size_t kk = 0; kk < N; kk++)
     {
         npio_t * np = npio_load(from);
@@ -261,7 +272,7 @@ static void bench(char * from, char * to)
         npio_free(np);
         np = NULL;
     }
-    clock_gettime(CLOCK_REALTIME, &tend);
+    gettime(&tend);
     double t_load = timespec_diff(&tend, &tstart);
 
     npio_t * np = npio_load(from);
@@ -271,7 +282,7 @@ static void bench(char * from, char * to)
         exit(EXIT_FAILURE);;
     }
 
-    clock_gettime(CLOCK_REALTIME, &tstart);
+    gettime(&tstart);
     for(size_t kk = 0; kk < N; kk++)
     {
         i64 nwritten = npio_write(to, np->ndim, np->shape, np->data,
@@ -283,7 +294,7 @@ static void bench(char * from, char * to)
             exit(EXIT_FAILURE);
         }
     }
-    clock_gettime(CLOCK_REALTIME, &tend);
+    gettime(&tend);
     double t_write = timespec_diff(&tend, &tstart);
     npio_free(np);
     np = NULL;

@@ -72,7 +72,7 @@ static int npd_parse_descr(npio_t * npd)
     {
         fprintf(stderr, "Invalid descriptor: %s ", npd->descr);
         fprintf(stderr, "Should be of length 3, not %zu\n",
-                (ssize_t) strlen(npd->descr) - 2 );
+                (i64) strlen(npd->descr) - 2 );
         exit(EXIT_FAILURE);
     }
     char * descr = npd->descr;
@@ -388,7 +388,11 @@ static int parse_shape_string(npio_t * npd,
                               const char * sstring, const int len)
 {
     //printf("To parse shape string: %.*s\n", len, sstring);
+#ifdef Win32
+    char * str = strdup(sstring);
+#else
     char * str = strndup(sstring, len);
+#endif
     if(str == NULL)
     {
         return EXIT_FAILURE;
@@ -411,7 +415,11 @@ static int parse_shape_string(npio_t * npd,
     char * str1 = NULL;
     for(str1 = str; ; str1 = NULL)
     {
+#ifdef Win32
+        char * tok = strtok_s(str1, ",", &saveptr);
+#else
         char * tok = strtok_r(str1, ",", &saveptr);
+#endif
         if(tok == NULL)
         {
             break;
