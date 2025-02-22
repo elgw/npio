@@ -17,7 +17,7 @@ typedef int64_t i64;
 
 static void gettime(struct timespec * t)
 {
-#ifdef Win32
+#ifdef _WIN32
     timespec_get(t, TIME_UTC); // since C11
 #else
     clock_gettime(CLOCK_REALTIME, t);

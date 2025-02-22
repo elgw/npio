@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#ifdef Win32
+#ifdef _WIN32
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES
 #define _CRT_SECURE_NO_WARNINGS
 #include <sys/types.h>
@@ -388,7 +388,7 @@ static int parse_shape_string(npio_t * npd,
                               const char * sstring, const int len)
 {
     //printf("To parse shape string: %.*s\n", len, sstring);
-#ifdef Win32
+#ifdef _WIN32
     char * str = strdup(sstring);
 #else
     char * str = strndup(sstring, len);
@@ -415,7 +415,7 @@ static int parse_shape_string(npio_t * npd,
     char * str1 = NULL;
     for(str1 = str; ; str1 = NULL)
     {
-#ifdef Win32
+#ifdef _WIN32
         char * tok = strtok_s(str1, ",", &saveptr);
 #else
         char * tok = strtok_r(str1, ",", &saveptr);
@@ -446,7 +446,7 @@ static int parse_shape_string(npio_t * npd,
 
 static i64 get_file_size(FILE * fid)
 {
-#ifdef Win32
+#ifdef _WIN32
     struct _stat64 info;
     if(_fstat64(fileno(fid), &info))
     {
