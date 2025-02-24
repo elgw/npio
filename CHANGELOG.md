@@ -44,7 +44,9 @@
 # Status
 
 ## To do
-- Care about endianness either in a proper big endian machine or via [https://www.qemu.org]
+- Only tested on little endian machines (AARCH64, x86_64). Care about
+  endianness either in a proper big endian machine or via
+  [https://www.qemu.org]
 - Test all numerical types.
 - Figure out a cleaner way to communicate errors.
 - Need to mention refactor?

@@ -1,98 +1,53 @@
-# npio: Numpy Input and Output for C
+npio is a C library for reading and writing `.npy` files.
 
-Features
+Not everything is supported, see some plans in the
+  [CHANGELOG](CHANGELOG.md) list.
 
-- A tiny (~ 20 kB) C library for reading and writing version 1
-Python/numpy `.npy` files.
-- No dependencies.
+## Examples
+Start with
+``` c
+#include <npio.h>
+```
 
-Limitations
-
-- Only tested on little endian machines (AARCH64, x86_64).
-- Not everything is supported, see some plans in the [CHANGELOG](CHANGELOG.md) list.
-
-
-## Minimal example
-
-This code will open an npy file and show the metadata:
+Open an npy file and print the some info to stdout:
 
 ``` c
-#include <stdlib.h>
-#include <npio.h>
-
-int main(int argc, char **argv)
+npio_t * np = npio_load(filename);
+if(np)
 {
-    if(argc > 1)
-    {
-        npio_t * np = npio_load(argv[1]);
-        if(np)
-        {
-            npio_print(stdout, np);
-            npio_free(np);
-            return EXIT_SUCCESS;
-        }
-    }
-    return EXIT_FAILURE;
+   npio_print(stdout, np);
+   npio_free(np);
 }
 ```
 
-Which will give the following output:
+Write an array to a file:
+
 ``` shell
-$ gcc -Wall -Wextra -pedantic -fanalyzer minimal.c -lnpio
-$ ./a.out numpy_io_ut_2x2.npy
-filename: numpy_io_ut_2x2.npy
-descr: '<f4' (little endian, float, 4 bytes)
-np_byte_order: '<'
-np_type: 'f'
-fortran_order: 0
-ndim: 2
-shape_str: '(2, 2,)'
-shape: [2, 2]
-nel: 4
-size of data: 4 x 4 = 16 B
+npio_write("array.npy",
+           ndim, &shape,
+           array,
+           NPIO_F32, NPIO_F32);
 ```
 
-Actual data can be found in the `npio_t` object.
-
 ## Build and install
+To build and install as a shared library, use the `CMakeLists.txt`:
 
 ``` shell
 mkdir build
 cd build
 cmake ../
+make
 sudo make install
 ```
 
+Alternatively copy and add `npio.h`, `npio.c` and `npio_config.h` to
+your project.
+
 ## Validation
-- [x] Passes valgrind.
-- [x] Passes `-fanalyzer`.
-- Some cases are covered by the Python script `/npio_test_suite.py`
-(which calls `./npio`).
-- Self tests are run by `./npio --unittest`.
-- [ ] Fuzzing?
-- [ ] Other evil edge cases.
 
-## Command Line Utility
+Some self-tests can be run with `./npio --unittest`. A few more cases
+are covered by the Python script `npio_test_suite.py`.
 
-The command line utility exists mostly to demonstrate how to use the
-library. However it can also be used to quickly inspect `.npy` files:
-
-``` shell
-./npio numpy_io_ut_2x2.npy
-Loading numpy_io_ut_2x2.npy
-filename: numpy_io_ut_2x2.npy
-descr: '<f8' (little endian, float, 8 bytes)
-np_byte_order: '<'
-np_type: 'f'
-fortran_order: 0
-ndim: 2
-shape_str: '(2, 2,)'
-shape: [2, 2]
-nel: 4
-size of data: 4 x 8 = 32 B
-```
-
-build it from the makefile.
 
 ## References
 - [NEP 1 — A Simple File Format for NumPy
