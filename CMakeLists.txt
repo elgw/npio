@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.9)
 
 # TODO: Default should be to build a static library, that makes most sense
 # when including as a submodule
+# Might be of interest:
+# cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 project(npio
   VERSION 0.0.10

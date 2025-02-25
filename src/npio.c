@@ -173,7 +173,6 @@ descr_to_dtype(const char * _descr)
         }
         break;
     }
-    assert(0);
     return NPIO_NOSUPPORT;
 }
 
@@ -644,8 +643,12 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     }
 
 
-    if(npd->data_size == 0 || npd->dtype == NPIO_NOSUPPORT)
+    if(npd->dtype == NPIO_NOSUPPORT)
     {
+        if(load_data == 1)
+        {
+            fprintf(stderr, "npio: Will not be able to load data\n");
+        }
         load_data = 0;
     }
 
@@ -729,6 +732,11 @@ npio_write_FILE(FILE * fid,
                 const void * data,
                 npio_dtype type_in, npio_dtype type_out)
 {
+    if(data == NULL)
+    {
+        fprintf(stdout, "Attempting npio_write_FILE with a NULL pointer for data\n");
+        return -1;
+    }
     if(type_in != type_out)
     {
         fprintf(stdout, "Input and output format combination not supported\n");
@@ -792,6 +800,7 @@ npio_write_FILE(FILE * fid,
     //printf("First element: %f\n", data[0]);
     int element_size = npio_element_size(type_in);
     assert(element_size > 0);
+    assert(data != NULL);
     nw = fwrite(data, element_size, nelements, fid);
     if(nw != (size_t) nelements)
     {

@@ -48,16 +48,19 @@
 # Status
 
 ## To do
-- Only tested on little endian machines (AARCH64, x86_64). Care about
-  endianness either in a proper big endian machine or via
-  [https://www.qemu.org]
-- Test all numerical types.
-- Figure out a cleaner way to communicate errors.
-- Need to mention refactor?
+- Decide for a better way to communicate errors. I think that it makes
+  sense that the library does not use stdout if not asked for it.
+- Facilitate memory mapping of the data.
+- NPZ support is planned using libzip.
 
-## Maybe
-- NPZ support?
-- Support read/write version 2.0 files ( > 65535 bytes header length).
 
 ## Will not
-- Supported nested arrays.
+
+Items on this list could happen if YOU implement them.
+
+- Supported nested arrays, and for the same reason there is no point
+  in supporting Numpy files of version 2.0 ( > 65535 bytes header
+  length).
+
+- Care about the byte order. The code is only run on little endian
+  machines (AARCH64, x86_64).

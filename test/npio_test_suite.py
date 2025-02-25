@@ -8,7 +8,10 @@
 import numpy as np
 import time
 import subprocess
+import sys
 import os
+
+npio_binary = None
 
 def benchmark(folder, N=1000):
     print('- Running benchmark')
@@ -35,7 +38,7 @@ def benchmark(folder, N=1000):
     print(f"To load {filename} {N} times took {t_load:.4f} s")
     print(f"To write {filename_out} {N} times took {t_write:.4f} s")
     print(' -- using c_numpy_io:')
-    cmd = ["./npio", "--benchmark", filename, filename_out];
+    cmd = [npio_binary, "--benchmark", filename, filename_out];
     print(f"cmd: {' '.join(cmd)}")
     subprocess.run(cmd)
 
@@ -45,7 +48,7 @@ def load_save_validate_file(fe):
     # print(f"Testing {fe}")
     fe_out = fe + 'resave.npy'
     A = np.load(fe)
-    cmd = ["./npio", "--resave",  fe, fe_out]
+    cmd = [npio_binary, "--resave",  fe, fe_out]
     print(f"Running {' '.join(cmd)}")
     subprocess.run(cmd)
     # print(f"Loading '{fe_out}'")
@@ -203,42 +206,44 @@ def corner_cases(folder):
     f = open(filename, "wb")
     f.write(b"\x93NU")
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
 
     print("-- Wrong magic number")
     filename = folder + "/invalid1.npy";
     f = open(filename, "wb")
     f.write(b"\x93MUMPY")
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
 
     print("-- Only magic number")
     filename = folder + "/invalid2.npy";
     f = open(filename, "wb")
     f.write(b"\x93NUMPY")
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
+
 
     print("-- Wrong version")
     filename = folder + "/invalid3.npy";
     f = open(filename, "wb")
     f.write(b"\x93NUMPY\x01\x01")
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
+
 
     print("-- Correct version, but no dictionary")
     filename = folder + "/invalid4.npy";
     f = open(filename, "wb")
     f.write(b"\x93NUMPY\x01\x00")
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
 
     print("-- Correct version, missing dictionary")
     filename = folder + "/invalid5.npy";
     f = open(filename, "wb")
     f.write(b"\x93NUMPY\x01\x00\xff\xff")
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
 
     print("-- Correct version, incomplete dictionary");
     filename = folder + "/invalid6.npy";
@@ -247,10 +252,17 @@ def corner_cases(folder):
     print(len(dict))
     f.write(b"\x93NUMPY\x01\x00\x48\x00" + dict)
     f.close()
-    check_valgrind("valgrind ./npio " + filename)
+    check_valgrind("valgrind " + npio_binary + " " + filename)
     # ...
 
 if __name__ == '__main__':
+
+    if len(sys.argv) < 2:
+        print("Please provide the path to the npio binary as the first argument")
+        sys.exit(1)
+
+    npio_binary = sys.argv[1]
+
     tmpfolder = 'testdata'
     if not os.path.exists(tmpfolder):
         os.mkdir(tmpfolder)
