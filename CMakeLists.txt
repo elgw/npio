@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.9)
 # when including as a submodule
 
 project(npio
-  VERSION 0.0.9
+  VERSION 0.0.10
   LANGUAGES C)
 
 set (CMAKE_C_STANDARD 11)

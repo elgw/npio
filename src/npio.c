@@ -69,8 +69,9 @@ typedef struct {
     length of the string.
     The tokens should be pre-allocated to a fixed size supplied by tok_len.
 */
-static int dp_parse(dp_t dp, const char * dict,
-                    const size_t dict_len, dptok_t * tok, const int tok_len);
+static int
+dp_parse(dp_t dp, const char * dict,
+         const size_t dict_len, dptok_t * tok, const int tok_len);
 
 /** @brief Comparison of token string to the string s
  */
@@ -92,10 +93,11 @@ static int npd_parse_descr(npio_t * npd)
 {
     if(strlen(npd->descr) != 5)
     {
-        fprintf(stderr, "Invalid descriptor: %s ", npd->descr);
-        fprintf(stderr, "Should be of length 3, not %zu\n",
-                (i64) strlen(npd->descr) - 2 );
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "npio: unsupported descriptor: >>%s<<\n", npd->descr);
+        fprintf(stderr, "      expected a non-nested descriptor\n");
+        npd->np_type = NPIO_NOSUPPORT;
+        npd->np_byte_order = '?';
+        return EXIT_FAILURE;
     }
     char * descr = npd->descr;
     npd->np_byte_order = descr[1];
@@ -338,7 +340,7 @@ static void print_dtype(FILE * fid, const npio_t * npd)
     }
 }
 
-
+// TODO: This prints too much, useful for debug though...
 void npio_print(FILE * fid, const npio_t * np)
 {
     if(fid == NULL)
@@ -346,16 +348,21 @@ void npio_print(FILE * fid, const npio_t * np)
         fid = stdout;
     }
     fprintf(fid, "filename: %s\n", np->filename);
-    fprintf(fid, "descr: %s (", np->descr);
-    fprintf(fid, "npio_dtype: %s\n", npio_dtype_string(np->dtype));
-    print_dtype(fid, np);
-    fprintf(fid, ")\n");
-    fprintf(fid, "np_byte_order: '%c'\n", np->np_byte_order);
-
-    fprintf(fid, "np_type: '%c'\n", np->np_type);
-
-    fprintf(fid, "fortran_order: %d\n", np->fortran_order);
-    fprintf(fid, "ndim: %d\n", np->ndim);
+    if(np->dtype == NPIO_NOSUPPORT)
+    {
+        fprintf(fid, "descr: %s\n", np->descr);
+        fprintf(fid, "The descriptor indicates a structured "
+                "array, that is not supported\n");
+    } else {
+        fprintf(fid, "descr: %s (", np->descr);
+        fprintf(fid, "npio_dtype: %s\n", npio_dtype_string(np->dtype));
+        print_dtype(fid, np);
+        fprintf(fid, ")\n");
+        fprintf(fid, "np_byte_order: '%c'\n", np->np_byte_order);
+        fprintf(fid, "np_type: '%c'\n", np->np_type);
+        fprintf(fid, "fortran_order: %d\n", np->fortran_order);
+        fprintf(fid, "ndim: %d\n", np->ndim);
+    }
     fprintf(fid, "shape_str: '%s'\n", np->shape_str);
     fprintf(fid, "shape: [");
     for(int kk = 0 ; kk < np->ndim ; kk++)
@@ -368,8 +375,14 @@ void npio_print(FILE * fid, const npio_t * np)
     }
     fprintf(fid, "]\n");
     fprintf(fid, "nel: %zu\n", np->nel);
-    fprintf(fid, "size of data: %zu x %d = %zu B\n",
-            np->nel, np->np_bytes, np->data_size);
+
+    if(np->data == NULL)
+    {
+        fprintf(fid, "data is not loaded\n");
+    } else {
+        fprintf(fid, "size of data: %zu x %d = %zu B\n",
+                np->nel, np->np_bytes, np->data_size);
+    }
 }
 
 static char *
@@ -502,8 +515,6 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         return NULL;
     }
 
-
-
     // Check magic number and version
     char magic[] = "123456";
 
@@ -573,6 +584,7 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     // Parse the dictionary
     dp_t dp = {0}; // dictionary parser
     dptok_t t[10]; // expect at most 9 tokens
+    // printf("DEBUG: >>%s<<\n", dict);
     int r = dp_parse(dp, dict, strlen(dict), t, 10);
     assert(r < 10);
 
@@ -588,7 +600,8 @@ npio_t * npio_load_opts(const char * filename, int load_data)
 
             if(npd_parse_descr(npd))
             {
-                goto fail;
+                // goto fail;
+                printf("there are warnings\n");
             }
 
         }
@@ -630,12 +643,20 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         goto fail;
     }
 
+
+    if(npd->data_size == 0 || npd->dtype == NPIO_NOSUPPORT)
+    {
+        load_data = 0;
+    }
+
     if(load_data == 0)
     {
         npd->data_size = 0;
         npd->data = NULL;
         goto post_data;
     }
+
+
     // Forward to the data
     long pos = ftell(fid);
     while(((size_t) pos % 64) != 0)
@@ -676,13 +697,14 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     }
     npd->data_size = npd->np_bytes*npd->nel;
     npd->data = data;
-post_data:
+
+ post_data:
     fclose(fid);
     return npd;
 
-fail1:
+ fail1:
     free(data);
-fail:
+ fail:
     npio_free(npd);
     npd = NULL;
     fclose(fid);
@@ -781,7 +803,7 @@ npio_write_FILE(FILE * fid,
     nwritten += element_size*nelements;
     return nwritten;
 
-fail:
+ fail:
     return -1;
 }
 
@@ -858,7 +880,14 @@ npio_write_mem(const int ndim,
     return buff;
 }
 
-/* DICTIONARY PARSER */
+/* DICTIONARY PARSER
+
+   Supported descriptors look like this:
+   {'descr': '<f8', 'fortran_order': False, 'shape': (2, 3, 4), }
+   Valid but not supported descriptor:
+   {'descr': [('name', '<U10'), ('age', '<i4'), ('weight', '<f4')], 'fortran_order': False, 'shape': (2,), }
+
+*/
 
 static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
 {
@@ -885,8 +914,12 @@ static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
     return -1;
 }
 
-static int dp_parse(dp_t dp, const char * dict,
-                    const size_t dict_len, dptok_t * tok, const int tok_len)
+static int
+dp_parse(dp_t dp,
+         const char * dict,
+         const size_t dict_len,
+         dptok_t * tok,
+         const int tok_len)
 {
     dp.pos = 0; /* position in dict string */
     dp.toknext = 0; /* next token to write to */
@@ -945,9 +978,17 @@ static int dp_parse(dp_t dp, const char * dict,
             nest = 0;
             if(c != ' ')
             {
-                if(c == '(')
+                switch(c)
                 {
-                    nest ++;
+                case '(':
+                    nest++;
+                    break;
+                case '[':
+                    nest++;
+                    break;
+                case '{':
+                    nest++;
+                    break;
                 }
 
                 state = 4;
@@ -957,14 +998,28 @@ static int dp_parse(dp_t dp, const char * dict,
         }
         if(state == 4) /* looking for end of value */
         {
-            if( c == ')')
+            switch(c)
             {
-                nest--;
-            }
-            if( c == '(')
-            {
+            case '(':
                 nest++;
+                break;
+            case '[':
+                nest++;
+                break;
+            case '{':
+                nest++;
+                break;
+            case ')':
+                nest--;
+                break;
+            case ']':
+                nest--;
+                break;
+            case '}':
+                nest--;
+                break;
             }
+
             if( nest == 0 && c == ',')
             {
                 state = 0;

@@ -1,5 +1,9 @@
 # Version history
 
+## 0.0.10
+ - Identifies nested arrays, to be able to print more useful error
+   messages when not reading them.
+
 ## 0.0.9
  - Added `npio_write_mem` to write an npy file to a memory buffer,
    this could be useful when in-memory compression is wanted (npz via libzip

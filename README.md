@@ -1,5 +1,8 @@
 npio is a C library for reading and writing `.npy` files.
 
+It supports arrays with a single data type, i.e., not [structured
+arrays](https://numpy.org/doc/stable/user/basics.rec.html).
+
 Not everything is supported, see some plans in the
   [CHANGELOG](CHANGELOG.md) list.
 
