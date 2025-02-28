@@ -3,6 +3,7 @@
 ## 0.0.10
  - Identifies nested arrays, to be able to print more useful error
    messages when not reading them.
+ - Fixed parsing `fortran_order`.
 
 ## 0.0.9
  - Added `npio_write_mem` to write an npy file to a memory buffer,
