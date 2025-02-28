@@ -3,10 +3,44 @@ npio is a C library for reading and writing `.npy` files.
 It supports arrays with a single data type, i.e., not [structured
 arrays](https://numpy.org/doc/stable/user/basics.rec.html).
 
-Not everything is supported, see some plans in the
-  [CHANGELOG](CHANGELOG.md) list.
+# Why?
+
+To communicate data with Python without adding a large dependency,
+while eliminating the risk of silly mistakes that can happen when
+sharing raw data files with no encoded metadata.
+
+# Status
+
+For what has been done, see the [CHANGELOG](CHANGELOG.md).
+
+## Quirks
+
+- Always saves arrays with `'fortran_order': False`, i.e. up to the
+  user to navigate around this if it is a problem.
+
+- Ignores the byte order. The code is only run on little endian
+  machines (AARCH64, x86_64) (to do).
+
+## To do
+
+- Decide for a better way to communicate errors without relying on
+  `stdout`.
+
+- Facilitate memory mapping of the data.
+
+- Load data to a user-provided buffer.
+
+- NPZ support using libzip.
+
+## Will not
+
+- Supported nested arrays, and for the same reason there is no point
+  in supporting Numpy files of version 2.0 ( > 65535 bytes header
+  length).
+
 
 ## Examples
+
 Start with
 ``` c
 #include <npio.h>
