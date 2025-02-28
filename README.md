@@ -32,6 +32,8 @@ npio_write("array.npy",
            NPIO_F32, NPIO_F32);
 ```
 
+
+
 ## Build and install
 To build and install as a shared library, use the `CMakeLists.txt`:
 

@@ -587,6 +587,8 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     int r = dp_parse(dp, dict, strlen(dict), t, 10);
     assert(r < 10);
 
+    int found_fortran_order = 0;
+
     for(int kk = 0; kk+1<r; kk = kk + 2)
     {
         if(dp_eq(dict, t+kk, "'descr'") == 0)
@@ -606,9 +608,21 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         }
         else if(dp_eq(dict, t+kk, "'fortran_order'") == 0)
         {
-            if(dp_eq(dict, t+kk+1, "'False'"))
+            found_fortran_order = 1;
+            int parsed = 0;
+            if(dp_eq(dict, t+kk+1, "False") == 0)
             {
                 npd->fortran_order = 0;
+                parsed = 1;
+            } else if(dp_eq(dict, t+kk+1, "True") == 0)
+            {
+                npd->fortran_order = 1;
+                parsed = 1;
+            }
+            if(parsed == 0)
+            {
+                printf("Warning: Could not parse fortran_order\n");
+                npd->fortran_order = 0; /* This is the default for numpy */
             }
         }
         else if(dp_eq(dict, t+kk, "'shape'") == 0)
@@ -634,6 +648,10 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         */
     }
 
+    if(found_fortran_order == 0)
+    {
+        printf("Warning: fortran_order not specified (or not parsed)\n");
+    }
     free(dict);
 
     if( npd->descr == NULL )
