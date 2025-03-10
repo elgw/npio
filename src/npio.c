@@ -382,6 +382,7 @@ void npio_print(FILE * fid, const npio_t * np)
         fprintf(fid, "size of data: %zu x %d = %zu B\n",
                 np->nel, np->np_bytes, np->data_size);
     }
+    fprintf(fid, "Data offset: %zu\n", np->data_offset);
 }
 
 static char *
@@ -670,12 +671,7 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         load_data = 0;
     }
 
-    if(load_data == 0)
-    {
-        npd->data_size = 0;
-        npd->data = NULL;
-        goto post_data;
-    }
+
 
 
     // Forward to the data
@@ -689,6 +685,15 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     {
         fprintf(stderr, "npio: fseek failed on line %d\n", __LINE__);
         goto fail;
+    }
+
+    npd->data_offset = ftell(fid);
+
+    if(load_data == 0)
+    {
+        npd->data_size = 0;
+        npd->data = NULL;
+        goto post_data;
     }
 
     /// Read the data
@@ -719,13 +724,13 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     npd->data_size = npd->np_bytes*npd->nel;
     npd->data = data;
 
- post_data:
+post_data:
     fclose(fid);
     return npd;
 
- fail1:
+fail1:
     free(data);
- fail:
+fail:
     npio_free(npd);
     npd = NULL;
     fclose(fid);
@@ -750,11 +755,6 @@ npio_write_FILE(FILE * fid,
                 const void * data,
                 npio_dtype type_in, npio_dtype type_out)
 {
-    if(data == NULL)
-    {
-        fprintf(stdout, "Attempting npio_write_FILE with a NULL pointer for data\n");
-        return -1;
-    }
     if(type_in != type_out)
     {
         fprintf(stdout, "Input and output format combination not supported\n");
@@ -818,19 +818,21 @@ npio_write_FILE(FILE * fid,
     //printf("First element: %f\n", data[0]);
     int element_size = npio_element_size(type_in);
     assert(element_size > 0);
-    assert(data != NULL);
-    nw = fwrite(data, element_size, nelements, fid);
-    if(nw != (size_t) nelements)
+    if(data != NULL)
     {
-        fprintf(stderr, "Failed to write data %s %d\n", __FILE__, __LINE__);
-        printf("Expeced nw = %ld == nelements %lu\n", nw, nelements);
-        printf("element_size: %u\n", element_size);
-        goto fail;
+        nw = fwrite(data, element_size, nelements, fid);
+        if(nw != (size_t) nelements)
+        {
+            fprintf(stderr, "Failed to write data %s %d\n", __FILE__, __LINE__);
+            printf("Expeced nw = %ld == nelements %lu\n", nw, nelements);
+            printf("element_size: %u\n", element_size);
+            goto fail;
+        }
+        nwritten += element_size*nelements;
     }
-    nwritten += element_size*nelements;
     return nwritten;
 
- fail:
+fail:
     return -1;
 }
 

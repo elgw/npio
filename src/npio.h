@@ -39,6 +39,7 @@ extern "C" {
         void * data; // raw pointer to the data
         size_t data_size; // total size of data, in bytes
         npio_dtype dtype;
+        size_t data_offset; // Where the data starts in the file
         /* Not from the npy file */
         char * filename;
     } npio_t;
@@ -60,6 +61,7 @@ extern "C" {
 
     /* Write data to a file decriptor, such as retrieved from fopen or fmemopen
      * return the number of bytes written or -1 on failure
+     * Note: If data == NULL the function will write the metadata only.
      */
     int64_t
     npio_write_FILE(FILE * fid,
@@ -69,7 +71,7 @@ extern "C" {
                     npio_dtype in, npio_dtype out);
 
     /* Write to a file given by its name. Overwrites existing files by
-     * default */
+     * default. See npio_write_FILE */
 
     int64_t
     npio_write(const char * fname,

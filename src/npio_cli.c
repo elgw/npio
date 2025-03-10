@@ -113,6 +113,89 @@ int test_double(int mem)
     return EXIT_SUCCESS;
 }
 
+static int test_separately(void)
+{
+    // First: Write only metadata and read it back
+    int M = 2;
+    int N = 2;
+    int ndim = 2;
+    int dim[] = {M, N};
+    float * D = calloc(M*N, sizeof(float));
+    assert(D != NULL);
+    for(int kk = 0; kk<M*N; kk++)
+    {
+        D[kk] = (kk+1)+(float) (kk+1) / 10.0;
+    }
+
+    char * outname = malloc(100);
+    assert(outname != NULL);
+
+    sprintf(outname, "numpy_io_ut_%dx%d.npy", M, N);
+
+    printf("Metadata to %s\n", outname);
+    i64 nwritten = npio_write(outname, ndim, dim, NULL,
+                            NPIO_F32, NPIO_F32);
+
+    printf("Wrote %ld bytes\n", nwritten);
+    if(nwritten < 0)
+    {
+        free(D);
+        free(outname);
+        return EXIT_FAILURE;
+    }
+
+    printf("Reading from %s\n", outname);
+    npio_t * np = npio_load_metadata(outname);
+    if(np == NULL)
+    {
+        fprintf(stderr, "Unable to read from %s\n", outname);
+        exit(EXIT_FAILURE);
+    }
+    npio_print(stdout, np);
+    printf("   --> Could write and read metadata without data\n");
+
+    FILE * fid = fopen(outname, "a+b");
+    assert(fid != NULL);
+    long pos = ftell(fid); // Tells 0 which is false
+    /* "POSIX is silent on what the initial read position" */
+    printf("Append position: %ld, data_offset: %zu\n", pos, np->data_offset);
+    /* For portability an fseek is required */
+
+    if(fseek(fid, np->data_offset, SEEK_SET))
+    {
+        fprintf(stderr, "fseek failed\n");
+    }
+
+    fwrite(D, sizeof(float), 4, fid);
+    fclose(fid);
+    npio_free(np);
+    np = NULL;
+    np = npio_load(outname);
+    if(np == NULL)
+    {
+        fprintf(stderr, "Unable to read from %s\n", outname);
+        exit(EXIT_FAILURE);
+    }
+    npio_print(stdout, np);
+
+    float * npdata = (float*) np->data;
+    for(size_t kk = 0; kk < (size_t) M*N; kk++)
+    {
+        if(npdata[kk] != D[kk])
+        {
+            printf("Content differs (%f vs %f at pos %zu)\n", npdata[kk], D[kk], kk);
+        }
+    }
+    printf("   --> Could write metadata first, and then append data\n");
+    npio_free(np);
+    np = NULL;
+    free(D);
+
+    free(outname);
+
+    return EXIT_SUCCESS;
+}
+
 int test_float(void)
 {
     int M = 2;
@@ -196,6 +279,13 @@ int unittest()
         fprintf(stderr, "test_float failed\n");
         return EXIT_FAILURE;
     }
+    printf("-> Testing write/read metadata and data separately\n");
+    if(test_separately())
+    {
+        fprintf(stderr, "test_separately failed\n");
+        return EXIT_FAILURE;
+    }
+    printf("-> All tests passed successfully\n");
     return EXIT_SUCCESS;
 }
 void load(char * from)
@@ -341,6 +431,7 @@ int main(int argc, char ** argv)
         { "help",       no_argument, NULL, 'h' },
         { "benchmark",  no_argument, NULL, 'b' },
         { "resave",     no_argument, NULL, 'r' },
+        { "version",    no_argument, NULL, 'h' },
         { NULL, 0, NULL, 0}
     };
 

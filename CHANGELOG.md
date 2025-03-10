@@ -1,5 +1,11 @@
 # Version history
 
+## 0.0.11
+- `npio_write*` does not require any data, if `NULL` is supplied only
+  the metadata will be written.
+- `npio_load*` returns the file offset of the data start position in
+  the `npio_t` struct that is returned.
+
 ## 0.0.10
  - Identifies nested arrays, to be able to print more useful error
    messages when not reading them.
