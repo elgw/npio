@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#ifdef _WIN32
+#ifdef WIN32
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES
 #define _CRT_SECURE_NO_WARNINGS
 #include <sys/types.h>
@@ -25,7 +25,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 
-#ifdef WIN32
+#ifdef _WIN32
 static char * strndup(const char * S, size_t n)
 {
     char * Y = calloc(n+1, 1);
@@ -45,6 +45,22 @@ static char * strndup(const char * S, size_t n)
     return Y;
 }
 #endif
+
+static int fseek2(FILE *fid, int64_t offset, int origin)
+{
+    int ret = 0;
+#ifdef _WIN32
+    ret =  _fseeki64(fid, offset, origin);
+#else
+    ret = fseek(fid, offset, origin);
+#endif
+    if(ret)
+    {
+        perror("dw_fseek error:");
+    }
+    return ret;
+}
+
 
 /* FORWARD DECLARATIONS FOR DICTIONARY PARSER */
 
@@ -680,7 +696,7 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     {
         pos++;
     }
-    r = fseek(fid, pos, SEEK_SET);
+    r = fseek2(fid, pos, SEEK_SET);
     if(r != EXIT_SUCCESS)
     {
         fprintf(stderr, "npio: fseek failed on line %d\n", __LINE__);

@@ -25,6 +25,21 @@ static void gettime(struct timespec * t)
     return;
 }
 
+static int fseek2(FILE *fid, int64_t offset, int origin)
+{
+    int ret = 0;
+#ifdef _WIN32
+    ret =  _fseeki64(fid, offset, origin);
+#else
+    ret = fseek(fid, offset, origin);
+#endif
+    if(ret)
+    {
+        perror("dw_fseek error:");
+    }
+    return ret;
+}
+
 
 void show_endian(void)
 {
@@ -161,7 +176,7 @@ static int test_separately(void)
     printf("Append position: %ld, data_offset: %zu\n", pos, np->data_offset);
     /* For portability an fseek is required */
 
-    if(fseek(fid, np->data_offset, SEEK_SET))
+    if(fseek2(fid, np->data_offset, SEEK_SET))
     {
         fprintf(stderr, "fseek failed\n");
     }
