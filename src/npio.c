@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #endif
 
-#include "npio.h"
+#include "../include/npio.h"
 #include "npio_config.h"
 
 typedef double f64;
@@ -404,10 +404,17 @@ void npio_print(FILE * fid, const npio_t * np)
 static char *
 gen_dictionary(int ndim, const int * shape, npio_dtype type_in)
 {
-    const i64 dict_alloc = ndim*12 + 128;
-    i64 offset = 0;
+    if(ndim < 1)
+    {
+        return NULL;
+    }
+    const size_t dict_alloc = (size_t) ndim*12 + 128;
+    size_t offset = 0;
     char * dict = calloc(dict_alloc, 1);
-    assert(dict != NULL);
+    if(dict == NULL)
+    {
+        return NULL;
+    }
     offset += snprintf(dict+offset, dict_alloc-offset,
                        "{'descr': '%s', 'fortran_order': False, 'shape': ",
                        npio_type_to_descr(type_in));

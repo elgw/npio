@@ -11,7 +11,7 @@
 #include <time.h>
 
 
-#include "npio.h"
+#include "../include/npio.h"
 
 typedef int64_t i64;
 
@@ -249,7 +249,7 @@ int test_float(void)
     }
     float * in_data = (float*) np->data;
     size_t results_differ = 0;
-    for(size_t kk = 0; kk< (size_t) M*N; kk++)
+    for(size_t kk = 0; kk< (size_t) (M*N); kk++)
     {
         if(D[kk] != in_data[kk])
         {
@@ -356,7 +356,7 @@ resave(const char * from, const char * to)
 static double timespec_diff(struct timespec* end, struct timespec * start)
 {
     double elapsed = (end->tv_sec - start->tv_sec);
-    elapsed += (end->tv_nsec - start->tv_nsec) / 1000000000.0;
+    elapsed += (double) (end->tv_nsec - start->tv_nsec) / 1000000000.0;
     return elapsed;
 }
 

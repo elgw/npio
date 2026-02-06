@@ -21,9 +21,12 @@ set( CMAKE_INSTALL_PREFIX
   /usr )
 
 add_library( npio_shared SHARED src/npio.c )
-set_property(TARGET npio_shared PROPERTY OUTPUT_NAME npio)
+add_library( npio_static STATIC src/npio.c )
 
-set_target_properties(npio_shared PROPERTIES PUBLIC_HEADER "src/npio.h")
+set_property(TARGET npio_shared PROPERTY OUTPUT_NAME npio)
+set_property(TARGET npio_static PROPERTY OUTPUT_NAME npio)
+
+set_target_properties(npio_shared PROPERTIES PUBLIC_HEADER "include/npio.h")
 set_target_properties(npio_shared PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION})
 
 # Replace variables by their values

@@ -1,5 +1,5 @@
 #include "mex.h"
-#include "npio.h"
+#include "../include/npio.h"
 
 /* # STATUS
  *
