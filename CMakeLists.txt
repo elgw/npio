@@ -36,8 +36,16 @@ target_include_directories(npio_shared PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_include_directories(npio_static PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 add_executable( npio_cli src/npio_cli.c src/npio.c )
 set_property(TARGET npio_cli PROPERTY OUTPUT_NAME npio)
+
+target_include_directories(npio_cli PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 # Note the value of CMAKE_INSTALL_PREFIX
 include(GNUInstallDirs)

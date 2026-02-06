@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #endif
 
-#include "../include/npio.h"
+#include "npio.h"
 #include "npio_config.h"
 
 typedef double f64;
