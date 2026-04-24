@@ -47,6 +47,9 @@ all: npio libnpio.a libnpio.so
 npio: libnpio.a src/npio_cli.c
 	$(CC) $(CFLAGS) src/npio_cli.c -o npio -L./ -lnpio $(LDFLAGS)
 
+npio_complete: src/npio_cli.c src/npio.c
+	$(CC) $(CFLAGS) src/npio.c src/npio_cli.c -o npio_complete $(LDFLAGS)
+
 libnpio.a: npio.o
 	# r : insert with replacement
 	# s : add/update index

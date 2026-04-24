@@ -63,7 +63,7 @@ int test_double(int mem)
 
     int ndim = 2;
     int dim[] = {M, N};
-    double * D = malloc(M*N*sizeof(double));
+    double * D = malloc( (size_t) (M*N)*sizeof(double));
     for(int kk = 0; kk<M*N; kk++)
     {
         D[kk] = (kk+1)+(double) (kk+1) / 10.0;
@@ -79,7 +79,7 @@ int test_double(int mem)
         i64 buff_size;
         void * buff = npio_write_mem(ndim, dim, (void*) D, NPIO_F64, NPIO_F64, &buff_size);
         FILE * fid = fopen(outname, "wb");
-        fwrite(buff, buff_size, 1, fid);
+        fwrite(buff, (size_t) buff_size, 1, fid);
         fclose(fid);
         free(buff);
     } else {
@@ -105,7 +105,7 @@ int test_double(int mem)
     }
     double * in_data = (double*) np->data;
     size_t results_differ = 0;
-    for(size_t kk = 0; kk< (size_t) M*N; kk++)
+    for(size_t kk = 0; kk< (size_t) (M*N); kk++)
     {
         if(D[kk] != in_data[kk])
         {
@@ -135,11 +135,11 @@ static int test_separately(void)
     int N = 2;
     int ndim = 2;
     int dim[] = {M, N};
-    float * D = calloc(M*N, sizeof(float));
+    float * D = calloc((size_t) (M*N), sizeof(float));
     assert(D != NULL);
     for(int kk = 0; kk<M*N; kk++)
     {
-        D[kk] = (kk+1)+(float) (kk+1) / 10.0;
+        D[kk] = (float) ((kk+1.0)+ (kk+1.0) / 10.0);
     }
 
     char * outname = malloc(100);
@@ -176,7 +176,7 @@ static int test_separately(void)
     printf("Append position: %ld, data_offset: %zu\n", pos, np->data_offset);
     /* For portability an fseek is required */
 
-    if(fseek2(fid, np->data_offset, SEEK_SET))
+    if(fseek2(fid, (i64) np->data_offset, SEEK_SET))
     {
         fprintf(stderr, "fseek failed\n");
     }
@@ -194,7 +194,7 @@ static int test_separately(void)
     npio_print(stdout, np);
 
     float * npdata = (float*) np->data;
-    for(size_t kk = 0; kk < (size_t) M*N; kk++)
+    for(size_t kk = 0; kk < (size_t) (M*N); kk++)
     {
         if(npdata[kk] != D[kk])
         {
@@ -219,10 +219,10 @@ int test_float(void)
 
     int ndim = 2;
     int dim[] = {M, N};
-    float * D = malloc(M*N*sizeof(float));
+    float * D = malloc((size_t) (M*N)*sizeof(float));
     for(int kk = 0; kk<M*N; kk++)
     {
-        D[kk] = (kk+1)+(float) (kk+1) / 10.0;
+        D[kk] = (float) ((kk+1.0) + (kk+1.0) / 10.0);
     }
 
     char * outname = malloc(100);
@@ -355,7 +355,7 @@ resave(const char * from, const char * to)
 
 static double timespec_diff(struct timespec* end, struct timespec * start)
 {
-    double elapsed = (end->tv_sec - start->tv_sec);
+    double elapsed = (double) (end->tv_sec - start->tv_sec);
     elapsed += (double) (end->tv_nsec - start->tv_nsec) / 1000000000.0;
     return elapsed;
 }

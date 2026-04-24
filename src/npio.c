@@ -70,7 +70,7 @@ static int fseek2(FILE *fid, int64_t offset, int origin)
 */
 
 typedef struct {
-    size_t pos;
+    int pos;
     int toknext;
 } dp_t;
 
@@ -415,35 +415,36 @@ gen_dictionary(int ndim, const int * shape, npio_dtype type_in)
     {
         return NULL;
     }
-    offset += snprintf(dict+offset, dict_alloc-offset,
-                       "{'descr': '%s', 'fortran_order': False, 'shape': ",
-                       npio_type_to_descr(type_in));
+    offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                "{'descr': '%s', 'fortran_order': False, 'shape': ",
+                                npio_type_to_descr(type_in));
 
-    offset += snprintf(dict+offset, dict_alloc-offset,
-                       "(");
+    offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                "(");
     for(int kk = 0; kk+1<ndim; kk++)
     {
-        offset += snprintf(dict+offset, dict_alloc-offset,
-                           "%d, ", shape[kk]);
+        offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                    "%d, ", shape[kk]);
     }
-    offset += snprintf(dict+offset, dict_alloc-offset,
-                       "%d,)", shape[ndim-1]);
-    offset += snprintf(dict+offset, dict_alloc-offset,
-                       ", }");
+    offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                "%d,)", shape[ndim-1]);
+    offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                ", }");
     while( (10 + offset) % 64 != 63)
     {
-        offset += snprintf(dict+offset, dict_alloc-offset,
-                           "\x20");
+        offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                    "\x20");
     }
-    offset += snprintf(dict+offset, dict_alloc-offset,
-                       "\n");
+    offset += (size_t) snprintf(dict+offset, dict_alloc-offset,
+                                "\n");
     assert(dict_alloc > offset);
     dict[offset] = '\0';
     return dict;
 }
 
-static int parse_shape_string(npio_t * npd,
-                              const char * sstring, const int len)
+static int
+parse_shape_string(npio_t * npd,
+                   const char * sstring, const size_t len)
 {
     //printf("To parse shape string: %.*s\n", len, sstring);
     char * str = strndup(sstring, len);
@@ -480,14 +481,15 @@ static int parse_shape_string(npio_t * npd,
             break;
         }
         char * endptr;
-        int s = (int) strtol(tok, &endptr, 10);//atoi(tok);
+        i64 s = (int) strtol(tok, &endptr, 10);//atoi(tok);
         if(endptr == tok)
         {
             // no digits found
         } else {
             //printf("'%s' -> %d\n", tok, s);
-            shape[ndim] = s;
-            nel *= s;
+            assert(s > 0);
+            shape[ndim] =  (int) s;
+            nel *= (size_t) s;
             ndim++;
         }
     }
@@ -518,90 +520,62 @@ static i64 get_file_size(FILE * fid)
 #endif
 }
 
-npio_t * npio_load_opts(const char * filename, int load_data)
+typedef struct __attribute__((packed))
 {
-    FILE * fid = fopen(filename, "rb");
-    if(fid == NULL)
+    char magic[6];
+    u8 version[2];
+    u16 dict_size;
+} npy_header;
+
+static int
+read_npy_header(FILE * fid, npy_header * header)
+{
+    size_t nread = fread(header, 1, sizeof(npy_header), fid);
+    if(nread != sizeof(npy_header))
     {
-        fprintf(stderr,
-                "npio: failed to open %s\n", filename);
-        return NULL;
+        return -1;
     }
+    return 0;
+}
 
-    i64 filesize = get_file_size(fid);
-
-    if(filesize <= 0)
-    {
-        fprintf(stderr,
-                "npio: could not fstat %s\n", filename);
-        fclose(fid);
-        return NULL;
-    }
-
+static int
+validate_npy_header(npy_header * header)
+{
     // Check magic number and version
-    char magic[] = "123456";
-
-    size_t nread = fread(magic, 1, 6, fid);
-    if(nread != 6)
-    {
-        fprintf(stderr, "npio: Could not read the magic number\n");
-        fclose(fid);
-        return NULL;
-    }
-
-    if(strncmp(magic, "\x93NUMPY", 6) != 0)
+    if(strncmp(header->magic, "\x93NUMPY", 6) != 0)
     {
         fprintf(stderr, "npio: Invalid magic number\n");
-        fclose(fid);
-        return NULL;
+        return -1;
     }
 
-    uint8_t version[2];
-    nread = fread(&version, 1, 2, fid);
-    if(nread != 2)
-    {
-        fclose(fid);
-        fprintf(stderr, "npio: Couldn't read version\n");
-        return NULL;
-    }
-    if(version[0] != 1 || version[1] != 0)
+    if(header->version[0] != 1 || header->version[1] != 0)
     {
         fprintf(stderr, "npio: Numpy file is v %d.%d, only tested for v 1.0\n",
-                (int) version[0], (int) version[1]);
-        fclose(fid);
-        return NULL;
+                (int) header->version[0], (int) header->version[1]);
+        return -1;
     }
+    return 0;
+}
 
-    // Read the size of the dictionary
-    uint16_t dsize = 0;
-    nread = fread(&dsize, 1, 2, fid);
-    if(nread != 2)
-    {
-        fprintf(stderr, "npio: could not read dictionary size\n");
-        fclose(fid);
-        return NULL;
-    }
-    //printf("Dictionary size: %u\n", dsize);
 
-    // Read the dictionary
-    char * dict = calloc(dsize+1, 1);
-    assert(dict != NULL);
-
-    nread = fread(dict, 1, dsize, fid);
-    if(nread != dsize)
-    {
-        fprintf(stderr, "npio: could not read %d B dictionary\n", dsize);
-        free(dict);
-        fclose(fid);
-        return NULL;
-    }
-    dict[dsize] = '\0'; // make a proper string
-    //printf("Dictionary: %s\n", dict);
-
+static npio_t *
+npio_new(const char * dict,
+         const char * filename)
+{
     npio_t * npd = calloc(1, sizeof(npio_t));
-    assert(npd != NULL);
+    if(npd == NULL)
+    {
+        fprintf(stderr, "npio: memory allocation error\n");
+        return NULL;
+    }
     npd->filename = strdup(filename);
-    assert(npd->filename != NULL);
+    if(npd->filename == NULL)
+    {
+        fprintf(stderr, "npio: memory allocation error\n");
+        free(npd);
+        return NULL;
+    }
+
     npd->fortran_order = 1;
 
     // Parse the dictionary
@@ -619,13 +593,12 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         {
 
             npd->descr = strndup(dict+t[kk+1].start,
-                                 t[kk+1].end-t[kk+1].start);
+                                 (size_t) (t[kk+1].end-t[kk+1].start));
 
             npd->dtype = descr_to_dtype(npd->descr);
 
             if(npd_parse_descr(npd))
             {
-                // goto fail;
                 printf("there are warnings\n");
             }
 
@@ -653,30 +626,21 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         {
             int ret = parse_shape_string(npd,
                                          dict+t[kk+1].start,
-                                         t[kk+1].end-t[kk+1].start);
+                                         (size_t) (t[kk+1].end-t[kk+1].start));
             npd->shape_str = strndup(dict+t[kk+1].start,
-                                     t[kk+1].end-t[kk+1].start);
+                                     (size_t) (t[kk+1].end-t[kk+1].start));
             if(ret == EXIT_FAILURE)
             {
                 fprintf(stderr, "npio: Could not parse the shape string\n");
-                free(dict);
-                dict = NULL;
                 goto fail;
             }
         }
-        /*
-          printf(" %.*s = ",
-          t[kk].end-t[kk].start, dict + t[kk].start);
-          printf("%.*s\n",
-          t[kk+1].end-t[kk+1].start, dict + t[kk+1].start);
-        */
     }
 
     if(found_fortran_order == 0)
     {
         printf("Warning: fortran_order not specified (or not parsed)\n");
     }
-    free(dict);
 
     if( npd->descr == NULL )
     {
@@ -684,6 +648,65 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         goto fail;
     }
 
+    return npd;
+
+ fail:
+    npio_free(npd);
+    return NULL;
+}
+
+npio_t * npio_load_opts(const char * filename, int load_data)
+{
+    FILE * fid = fopen(filename, "rb");
+    if(fid == NULL)
+    {
+        fprintf(stderr,
+                "npio: failed to open %s\n", filename);
+        return NULL;
+    }
+
+    i64 filesize = get_file_size(fid);
+
+    if(filesize <= 0)
+    {
+        fprintf(stderr,
+                "npio: could not fstat %s\n", filename);
+        goto fail_file;
+    }
+
+    npy_header header = {};
+    if(read_npy_header(fid, &header))
+    {
+        fprintf(stderr, "npio: Failed to read header\n");
+        goto fail_file;
+    }
+
+    if(validate_npy_header(&header))
+    {
+        fprintf(stderr, "npio: Failed to validate npy header\n");
+        goto fail_file;
+    }
+
+    // Read the dictionary
+    char * dict = calloc(header.dict_size+1, 1);
+    assert(dict != NULL);
+
+    size_t nread = fread(dict, 1, header.dict_size, fid);
+    if(nread != header.dict_size)
+    {
+        fprintf(stderr, "npio: could not read %d B dictionary\n", header.dict_size);
+        goto fail_dict;
+    }
+    dict[header.dict_size] = '\0'; // make a proper string
+
+    // Parse dictionary
+    npio_t * npd = npio_new(dict, filename);
+    free(dict);
+    if(npd == NULL)
+    {
+        fprintf(stderr, "npio: failed to parse description string\n");
+        goto fail_file;
+    }
 
     if(npd->dtype == NPIO_NOSUPPORT)
     {
@@ -694,23 +717,25 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         load_data = 0;
     }
 
-
-
-
     // Forward to the data
-    long pos = ftell(fid);
+    {
+    i64 pos = ftell(fid);
     while(((size_t) pos % 64) != 0)
     {
         pos++;
     }
-    r = fseek2(fid, pos, SEEK_SET);
-    if(r != EXIT_SUCCESS)
+
+
+    if(fseek2(fid, pos, SEEK_SET) != EXIT_SUCCESS)
     {
         fprintf(stderr, "npio: fseek failed on line %d\n", __LINE__);
         goto fail;
     }
+    }
 
-    npd->data_offset = ftell(fid);
+    i64 pos = ftell(fid);
+    assert(pos >= 0);
+    npd->data_offset = (size_t) pos;
 
     if(load_data == 0)
     {
@@ -737,25 +762,33 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         fprintf(stderr, "npio failed: Could not allocate %zu bytes\n", nBytes);
         goto fail1;
     }
-    nread = fread(data, npd->np_bytes, npd->nel, fid);
+    nread = fread(data, (size_t) npd->np_bytes, npd->nel, fid);
     if(nread != npd->nel)
     {
         fprintf(stderr, "npio failed: Could not read %zu elements of size %d\n",
                 npd->nel, npd->np_bytes);
         goto fail1;
     }
-    npd->data_size = npd->np_bytes*npd->nel;
+    npd->data_size = (size_t) npd->np_bytes*(size_t) npd->nel;
     npd->data = data;
 
-post_data:
+ post_data:
     fclose(fid);
     return npd;
 
-fail1:
+ fail1:
     free(data);
-fail:
+ fail:
     npio_free(npd);
     npd = NULL;
+    fclose(fid);
+    return NULL;
+
+
+ fail_dict:
+    free(dict);
+
+ fail_file:
     fclose(fid);
     return NULL;
 }
@@ -800,7 +833,7 @@ npio_write_FILE(FILE * fid,
     size_t nelements = 1;
     for(int kk = 0; kk<ndim; kk++)
     {
-        nelements *= shape[kk];
+        nelements *= (size_t) shape[kk];
     }
 
     char d[] = "\x93NUMPY";
@@ -827,10 +860,10 @@ npio_write_FILE(FILE * fid,
     // write the size of the dictionary
     // write the dictionary
     char * dictionary = gen_dictionary(ndim, shape, type_in);
-    u16 dlen = strlen(dictionary);
-    f64 hl = fwrite(&dlen, 2, 1, fid);
+    u16 dlen = (u16) strlen(dictionary);
+    u64 hl = fwrite(&dlen, 2, 1, fid);
     assert(hl == 1);
-    i64 inw = fwrite(dictionary, 1, dlen, fid);
+    u64 inw = fwrite(dictionary, 1, dlen, fid);
     assert(inw == dlen);
     free(dictionary);
 
@@ -843,7 +876,7 @@ npio_write_FILE(FILE * fid,
     assert(element_size > 0);
     if(data != NULL)
     {
-        nw = fwrite(data, element_size, nelements, fid);
+        nw = fwrite(data, (size_t) element_size, nelements, fid);
         if(nw != (size_t) nelements)
         {
             fprintf(stderr, "Failed to write data %s %d\n", __FILE__, __LINE__);
@@ -851,20 +884,21 @@ npio_write_FILE(FILE * fid,
             printf("element_size: %u\n", element_size);
             goto fail;
         }
-        nwritten += element_size*nelements;
+        nwritten += (size_t) element_size*nelements;
     }
-    return nwritten;
+    return (i64) nwritten;
 
-fail:
+ fail:
     return -1;
 }
 
 
-i64 npio_write(const char * fname,
-               const int ndim,
-               const int * shape,
-               const void * data,
-               npio_dtype dtin, npio_dtype dtout)
+i64
+npio_write(const char * fname,
+           const int ndim,
+           const int * shape,
+           const void * data,
+           npio_dtype dtin, npio_dtype dtout)
 {
     FILE * fid = fopen(fname, "wb");
     if(fid == NULL)
@@ -903,7 +937,7 @@ npio_write_mem(const int ndim,
         return NULL;
     }
 
-    size_t nelements = 1;
+    i64 nelements = 1;
     for(int kk = 0; kk<ndim; kk++)
     {
         nelements *= shape[kk];
@@ -911,24 +945,24 @@ npio_write_mem(const int ndim,
     int element_size = npio_element_size(type_in);
 
     char * dictionary = gen_dictionary(ndim, shape, type_in);
-    uint8_t * buff = calloc(10 + strlen(dictionary) + nelements*element_size, 1);
-    size_t dictionary_size = strlen(dictionary);
+    uint8_t * buff = calloc(10 + strlen(dictionary) + (size_t) (nelements*element_size), 1);
+    i64 dictionary_size = (i64) strlen(dictionary);
     char header[6] = "\x93NUMPY";
     memcpy(buff, header, 6);
     buff[6] = 1;
     buff[7] = 0;
     u16 * _dsize = (u16*) (buff+8);
-    _dsize[0] = dictionary_size;
+    _dsize[0] = (u16) dictionary_size;
     assert( (10 + dictionary_size) % 64 == 0);
     /* Write the dictionary */
-    memcpy(buff + 10, dictionary, dictionary_size);
+    memcpy(buff + 10, dictionary, (size_t) dictionary_size);
     free(dictionary);
 
     /* Copy the data */
-    memcpy(buff+(10+dictionary_size), data, element_size*nelements);
+    memcpy(buff+(10+dictionary_size), data, (size_t) (element_size*nelements));
 
     /* Set the final size */
-    *mem_size = 10+dictionary_size + element_size*nelements;
+    *mem_size = 10 + dictionary_size + element_size*nelements;
     return buff;
 }
 
@@ -947,19 +981,20 @@ static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
     assert(tok != NULL);
     assert(s != NULL);
 
-    int len = (int) strnlen(s, tok->end - tok->start);
+    size_t ntok = (size_t) (tok->end - tok->start);
+    int len = (int) strnlen(s, ntok);
 
     if(len == 0)
     {
         return -1;
     }
 
-    if (len != tok->end - tok->start)
+    if (len != (int) ntok)
     {
         return -1;
     }
 
-    if(strncmp(dict + tok->start, s, tok->end - tok->start) == 0)
+    if(strncmp(dict + tok->start, s, ntok) == 0)
     {
         return 0;
     }
