@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.9)
 # cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 project(npio
-  VERSION 0.0.10
+  VERSION 0.0.11
   LANGUAGES C)
 
 set (CMAKE_C_STANDARD 11)

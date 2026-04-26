@@ -253,7 +253,8 @@ static const char * npio_dtype_string(npio_dtype dtype)
     return "ERROR";
 }
 
-static int npio_element_size(npio_dtype dtype)
+static int
+npio_element_size(npio_dtype dtype)
 {
     switch(dtype)
     {
@@ -283,7 +284,8 @@ static int npio_element_size(npio_dtype dtype)
     return 0;
 }
 
-static void print_dtype(FILE * fid, const npio_t * npd)
+static void
+print_dtype(FILE * fid, const npio_t * npd)
 {
     char byte_order = npd->np_byte_order;
     char type = npd->np_type;;
@@ -401,6 +403,9 @@ void npio_print(FILE * fid, const npio_t * np)
     fprintf(fid, "Data offset: %zu\n", np->data_offset);
 }
 
+/* Generate a dictionary which is padded so that,
+ * when written after the header, the next element will be
+ * 64-byte aligned */
 static char *
 gen_dictionary(int ndim, const int * shape, npio_dtype type_in)
 {
@@ -408,6 +413,10 @@ gen_dictionary(int ndim, const int * shape, npio_dtype type_in)
     {
         return NULL;
     }
+
+    // This is big enough so that snprintf should not fail
+    // and we can typecast the results to size_t.
+
     const size_t dict_alloc = (size_t) ndim*12 + 128;
     size_t offset = 0;
     char * dict = calloc(dict_alloc, 1);
@@ -520,18 +529,37 @@ static i64 get_file_size(FILE * fid)
 #endif
 }
 
+// The 10 byte header for 1.0 files
 typedef struct __attribute__((packed))
 {
     char magic[6];
     u8 version[2];
     u16 dict_size;
-} npy_header;
+} npy_header1;
+
+typedef struct __attribute__((packed))
+{
+    char magic[6];
+    u8 version[2];
+    u32 dict_size;
+} npy_header2;
+
+npy_header1 *
+npy_header_new(u16 dict_size)
+{
+    npy_header1 * header = calloc(1, sizeof(npy_header1));
+    memcpy(header->magic, "\x93NUMPY", 6);
+    header->version[0] = 1;
+    header->version[1] = 0;
+    header->dict_size = dict_size;
+    return header;
+}
 
 static int
-read_npy_header(FILE * fid, npy_header * header)
+npy_header_read(FILE * fid, npy_header1 * header)
 {
-    size_t nread = fread(header, 1, sizeof(npy_header), fid);
-    if(nread != sizeof(npy_header))
+    size_t nread = fread(header, 1, sizeof(npy_header1), fid);
+    if(nread != sizeof(npy_header1))
     {
         return -1;
     }
@@ -539,7 +567,7 @@ read_npy_header(FILE * fid, npy_header * header)
 }
 
 static int
-validate_npy_header(npy_header * header)
+npy_header_validate(npy_header1 * header)
 {
     // Check magic number and version
     if(strncmp(header->magic, "\x93NUMPY", 6) != 0)
@@ -674,14 +702,14 @@ npio_t * npio_load_opts(const char * filename, int load_data)
         goto fail_file;
     }
 
-    npy_header header = {};
-    if(read_npy_header(fid, &header))
+    npy_header1 header = {};
+    if(npy_header_read(fid, &header))
     {
         fprintf(stderr, "npio: Failed to read header\n");
         goto fail_file;
     }
 
-    if(validate_npy_header(&header))
+    if(npy_header_validate(&header))
     {
         fprintf(stderr, "npio: Failed to validate npy header\n");
         goto fail_file;
@@ -702,6 +730,7 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     // Parse dictionary
     npio_t * npd = npio_new(dict, filename);
     free(dict);
+
     if(npd == NULL)
     {
         fprintf(stderr, "npio: failed to parse description string\n");
@@ -712,10 +741,14 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     {
         if(load_data == 1)
         {
-            fprintf(stderr, "npio: Will not be able to load data\n");
+            fprintf(stderr, "npio: The data type is not supported -- "
+                    "will not load the data\n");
         }
         load_data = 0;
     }
+
+    // Note: The specification does not require that the file end with the end
+    // of the data
 
     // Forward to the data
     {
@@ -724,7 +757,6 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     {
         pos++;
     }
-
 
     if(fseek2(fid, pos, SEEK_SET) != EXIT_SUCCESS)
     {
@@ -750,11 +782,12 @@ npio_t * npio_load_opts(const char * filename, int load_data)
     // file size
     if(nBytes > (size_t) filesize)
     {
-        fprintf(stderr, "npio: nBytes=%zu, file size=%zu\n", nBytes, filesize);
-        fprintf(stderr, "npio: corrupt npy file?\n");
+        fprintf(stderr, "npio error: The meta data indicates that there are "
+                "%zu bytes to be read, but the file size is only %zu bytes.\n"
+                "This indicates that the metadata was parsed wrongly or that "
+                "the file is corrupted\n", nBytes, filesize);
         goto fail;
     }
-    //printf("To read %zu elements in %zu B\n", npd->nel, nBytes);
 
     uint8_t * data = calloc(nBytes, 1);
     if(data == NULL)
@@ -911,6 +944,8 @@ npio_write(const char * fname,
     return nwritten;
 }
 
+
+// TODO: merge with the file writing version.
 void *
 npio_write_mem(const int ndim,
                const int * shape,
@@ -947,6 +982,7 @@ npio_write_mem(const int ndim,
     char * dictionary = gen_dictionary(ndim, shape, type_in);
     uint8_t * buff = calloc(10 + strlen(dictionary) + (size_t) (nelements*element_size), 1);
     i64 dictionary_size = (i64) strlen(dictionary);
+    // TODO: header_new(dictionary_size); or similar
     char header[6] = "\x93NUMPY";
     memcpy(buff, header, 6);
     buff[6] = 1;
@@ -970,12 +1006,21 @@ npio_write_mem(const int ndim,
 
    Supported descriptors look like this:
    {'descr': '<f8', 'fortran_order': False, 'shape': (2, 3, 4), }
-   Valid but not supported descriptor:
-   {'descr': [('name', '<U10'), ('age', '<i4'), ('weight', '<f4')], 'fortran_order': False, 'shape': (2,), }
+
+   i.e. where all elements have the same data type
+
+   The following descriptor can not be parsed by this library,
+   although it is completely valid:
+
+   {'descr': [('name', '<U10'), ('age', '<i4'), ('weight', '<f4')],
+     'fortran_order': False, 'shape': (2,), }
+
+     i.e. this parser can not handle structured/nested descriptors.
 
 */
 
-static int dp_eq(const char *dict, const dptok_t *tok, const char *s)
+static int
+dp_eq(const char *dict, const dptok_t *tok, const char *s)
 {
     assert(dict != NULL);
     assert(tok != NULL);

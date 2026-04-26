@@ -85,10 +85,47 @@ your project.
 ## Validation
 
 Some self-tests can be run with `./npio --unittest`. A few more cases
-are covered by the Python script `npio_test_suite.py`.
+are covered by the Python script `npio_test_suite.py`:
+
+<details><summary>Example output from npio_test_suite.py</summary>
+``` shell
+$ cd test
+$ python npio_test_suite.py
+Using ../build/npio
+- Running benchmark
+-- Using numpy:
+To load testdata/bench.npy 1000 times took 0.1456 s
+To write testdata/bench_out.npy 1000 times took 0.0830 s
+ -- using c_numpy_io:
+cmd: ../build/npio --benchmark testdata/bench.npy testdata/bench_out.npy
+To load testdata/bench.npy 1000 times took 0.0067 s
+To write to testdata/bench_out.npy 1000 times took 0.0517 s
+- Load-Save validation
+-- double
+-- float
+-- uint8
+-- uint16
+-- uint32
+-- uint64
+-- int8
+-- int16
+-- int32
+-- int64
+- Corner cases
+-- Incomplete magic number
+-- Wrong magic number
+-- Only magic number
+-- Wrong version
+-- Correct version, but no dictionary
+-- Correct version, missing dictionary
+-- Correct version, incomplete dictionary
+-> npio passed the tests
+```
+</details>
 
 
 ## References
 - [NEP 1 — A Simple File Format for NumPy
 Arrays](https://github.com/numpy/numpy/blob/067cb067cb17a20422e51da908920a4fbb3ab851/doc/neps/nep-0001-npy-format.rst)
+- [numpy.lib.format](https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html)
 - [numpy/format.py](https://github.com/numpy/numpy/blob/main/numpy/lib/format.py)

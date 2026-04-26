@@ -49,12 +49,13 @@ def load_save_validate_file(fe):
     fe_out = fe + 'resave.npy'
     A = np.load(fe)
     cmd = [npio_binary, "--resave",  fe, fe_out]
-    print(f"Running {' '.join(cmd)}")
+
     subprocess.run(cmd)
     # print(f"Loading '{fe_out}'")
     try:
         B = np.load(fe_out)
     except ValueError:
+        print(f"Failure when running {' '.join(cmd)}")
         print(ValueError)
         exit(1)
 
@@ -195,9 +196,7 @@ def check_valgrind(command):
     assert("no leaks are possible" in result.stderr)
     # Check that we got an error from npio
     assert(result.returncode == 1)
-
-
-
+    return
 
 def corner_cases(folder):
     print("- Corner cases")
@@ -249,7 +248,7 @@ def corner_cases(folder):
     filename = folder + "/invalid6.npy";
     f = open(filename, "wb")
     dict = b"{'descr': '<f8', 'fortran_order': False, 'shape': (1000, 1000, 1000,), }"
-    print(len(dict))
+    # print(len(dict))
     f.write(b"\x93NUMPY\x01\x00\x48\x00" + dict)
     f.close()
     check_valgrind("valgrind " + npio_binary + " " + filename)
@@ -257,11 +256,17 @@ def corner_cases(folder):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) < 2:
+    if len(sys.argv) > 1:
+        npio_binary = sys.argv[1]
+    else:
+        npio_binary = '../build/npio'
+
+    if not os.path.exists(npio_binary):
+        print(f"{npio_binary} does not exist")
         print("Please provide the path to the npio binary as the first argument")
         sys.exit(1)
 
-    npio_binary = sys.argv[1]
+    print(f"Using {npio_binary}")
 
     tmpfolder = 'testdata'
     if not os.path.exists(tmpfolder):
