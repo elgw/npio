@@ -1,9 +1,9 @@
 # npio: a lib for reading and writing NPY 1.0 files
 
-NPY files are nice for passing data between programs. They contain
-metadata about array shapes and data types which eliminates the risk
-of silly mistakes that can happen when sharing raw data with no
-encoded metadata.
+NPY files are nice for passing array data between programs. They
+contain metadata about the array shape and data type which eliminates
+the risk of silly mistakes which typically occurs when passing around
+raw data.
 
 - This library compiles to about 25 kb and should be simple to
   integrate into small projects that are only interested that want to
