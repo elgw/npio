@@ -88,6 +88,7 @@ Some self-tests can be run with `./npio --unittest`. A few more cases
 are covered by the Python script `npio_test_suite.py`:
 
 <details><summary>Example output from npio_test_suite.py</summary>
+
 ``` shell
 $ cd test
 $ python npio_test_suite.py
@@ -121,6 +122,7 @@ To write to testdata/bench_out.npy 1000 times took 0.0517 s
 -- Correct version, incomplete dictionary
 -> npio passed the tests
 ```
+
 </details>
 
 
