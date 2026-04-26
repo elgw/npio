@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.9)
 # cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 project(npio
-  VERSION 0.0.10
+  VERSION 0.0.11
   LANGUAGES C)
 
 set (CMAKE_C_STANDARD 11)
@@ -21,9 +21,12 @@ set( CMAKE_INSTALL_PREFIX
   /usr )
 
 add_library( npio_shared SHARED src/npio.c )
-set_property(TARGET npio_shared PROPERTY OUTPUT_NAME npio)
+add_library( npio_static STATIC src/npio.c )
 
-set_target_properties(npio_shared PROPERTIES PUBLIC_HEADER "src/npio.h")
+set_property(TARGET npio_shared PROPERTY OUTPUT_NAME npio)
+set_property(TARGET npio_static PROPERTY OUTPUT_NAME npio)
+
+set_target_properties(npio_shared PROPERTIES PUBLIC_HEADER "include/npio.h")
 set_target_properties(npio_shared PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION})
 
 # Replace variables by their values
@@ -33,8 +36,16 @@ target_include_directories(npio_shared PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_include_directories(npio_static PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 add_executable( npio_cli src/npio_cli.c src/npio.c )
 set_property(TARGET npio_cli PROPERTY OUTPUT_NAME npio)
+
+target_include_directories(npio_cli PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 # Note the value of CMAKE_INSTALL_PREFIX
 include(GNUInstallDirs)

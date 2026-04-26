@@ -2,5 +2,7 @@
 *.o
 npio
 libnpio.a
+libnpio.so
 testdata/
 build/
+
